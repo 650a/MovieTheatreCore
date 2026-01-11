@@ -1,6 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>b0x.us</groupId>
@@ -10,20 +11,15 @@
   <name>MediaPlayer</name>
 
   <properties>
-    <!-- Paper 1.20.5+ requires Java 21 -->
+    <!-- Paper 1.20.5+ / 1.21+ REQUIRES Java 21 -->
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <!-- Your code imports org.bukkit.craftbukkit.v1_20_R4.* (1.20.5/1.20.6 era) -->
+    <!-- Your source imports org.bukkit.craftbukkit.v1_20_R4 -->
     <paper.version>1.20.6-R0.1-SNAPSHOT</paper.version>
-
-    <!-- Match whatever BKCommonLib jar you download/install in the workflow -->
-    <bkcommonlib.version>1.21.1-v1</bkcommonlib.version>
-    <netty.version>4.1.119.Final</netty.version>
   </properties>
 
   <repositories>
-    <!-- Paper / Paper-API / Paper-Server -->
     <repository>
       <id>papermc</id>
       <url>https://repo.papermc.io/repository/maven-public/</url>
@@ -31,7 +27,7 @@
   </repositories>
 
   <dependencies>
-    <!-- Bukkit API (provided by the server at runtime) -->
+    <!-- Bukkit / Paper API -->
     <dependency>
       <groupId>io.papermc.paper</groupId>
       <artifactId>paper-api</artifactId>
@@ -39,7 +35,7 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Server classes (CraftBukkit + NMS) for compiling your v1_20_R4 imports -->
+    <!-- CraftBukkit + NMS (REQUIRED because your code imports them directly) -->
     <dependency>
       <groupId>io.papermc.paper</groupId>
       <artifactId>paper-server</artifactId>
@@ -47,23 +43,29 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- BKCommonLib (you’ll install this into the CI maven-local in the workflow) -->
+    <!-- BKCommonLib (installed locally in GitHub Actions; NO transitive deps) -->
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>${bkcommonlib.version}</version>
+      <version>1.21.1-v1</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
-    <!-- Netty (your code imports io.netty.channel.* / io.netty.buffer.*) -->
+    <!-- Netty (compile only; server provides it at runtime) -->
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
-      <version>${netty.version}</version>
+      <version>4.1.119.Final</version>
       <scope>provided</scope>
     </dependency>
 
-    <!-- json-simple (your code imports org.json.simple.*) -->
+    <!-- json-simple -->
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
@@ -72,27 +74,26 @@
   </dependencies>
 
   <build>
-    <!-- Your sources are under src/fr/... (not src/main/java) -->
+    <!-- YOUR REPO USES src/fr/... -->
     <sourceDirectory>src</sourceDirectory>
 
     <resources>
-      <!-- Include plugin.yml from repo root into the JAR root -->
+      <!-- FORCE plugin.yml INTO JAR ROOT -->
       <resource>
         <directory>${project.basedir}</directory>
         <includes>
           <include>plugin.yml</include>
         </includes>
       </resource>
-      <!-- Also include any resource files you may have under src/ (optional) -->
+
+      <!-- Optional: include any assets under src/ -->
       <resource>
         <directory>src</directory>
         <includes>
           <include>**/*.yml</include>
           <include>**/*.json</include>
-          <include>**/*.txt</include>
           <include>**/*.png</include>
           <include>**/*.jpg</include>
-          <include>**/*.properties</include>
         </includes>
       </resource>
     </resources>
@@ -116,11 +117,11 @@
           <archive>
             <manifest>
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
             </manifest>
           </archive>
         </configuration>
       </plugin>
     </plugins>
   </build>
+
 </project>
