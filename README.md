@@ -1,4 +1,4 @@
-# A LESS SHITTY VERSION OF THE ORIGINAL MEDIAPLAYER WITH MANY BUG FIXES AND CHANGES
+# The folk that makes MediaPlayer into what it always should've been
 
 <h1 align="center">
   <img src="https://i.postimg.cc/gj8Pj7mb/icon.png" alt="MediaPlayer">
