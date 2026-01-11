@@ -25,39 +25,48 @@ public class Server {
     private int port = getRandomNumber(1000, 8000);
     private String arg = "";
     private boolean secure = false;
+    private String externalUrl = null;
     	
     public Server(File file) {
     	Server.file=file;
     }
     
-    public boolean start() {
-    	
-    	ip = plugin.getServer().getIp(); if (ip == null || ip.equals("")) ip = "localhost";
-    	
-    	if(!configuration.plugin_alternative_server().equals("http://54.38.185.225/")
-    			&& !configuration.plugin_alternative_server().equals("none")) {
-    		
-    		String[] elements = configuration.plugin_alternative_server().split("&");
-    		
-    		if(elements.length > 0) {
-    			
-        		arg = elements[1];
-        		
-    			String[] inner = elements[0].split(":");
-    			
-        		ip = inner[0];
-        		port = Integer.parseInt(inner[1]);
-    			
-        		if(elements.length > 2) secure = elements[2].equals("s");
-        		
-    		}else {
-    			
-    			elements = configuration.plugin_alternative_server().split(":");
-    			
-        		ip = elements[0];
-        		port = Integer.parseInt(elements[1]);
-    		}    		
-    	}
+	    public boolean start() {
+	    	
+	    	ip = plugin.getServer().getIp(); if (ip == null || ip.equals("")) ip = "localhost";
+	    	
+	    	String alternativeValue = configuration.plugin_alternative_server();
+	    	String alternative = alternativeValue == null ? "" : alternativeValue.trim();
+	    	if(!alternative.equals("http://54.38.185.225/") && !alternative.equals("none")) {
+	    		
+	    		if(alternative.isEmpty()) {
+	    			return true;
+	    		}
+	    		
+	    		if(alternative.startsWith("http://") || alternative.startsWith("https://")) {
+	    			externalUrl = alternative;
+	    			return true;
+	    		}
+	    		
+	    		String[] elements = alternative.split("&", -1);
+	    		String hostPort = elements.length > 0 ? elements[0].trim() : "";
+	    		
+	    		if(elements.length > 1 && !elements[1].isEmpty()) {
+	    			arg = elements[1].trim();
+	    		}
+	    		if(elements.length > 2) secure = elements[2].trim().equalsIgnoreCase("s");
+	    		
+	    		if(!hostPort.isEmpty()) {
+	    			String[] inner = hostPort.split(":", 2);
+	    			ip = inner[0].trim();
+	    			if(inner.length > 1 && !inner[1].isEmpty()) {
+	    				try {
+	    					port = Integer.parseInt(inner[1].trim());
+	    				}catch (NumberFormatException ignored) {
+	    				}
+	    			}
+	    		}
+	    	}
     	
         try {
         	HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
@@ -98,6 +107,7 @@ public class Server {
     }
     
     public String url() {
+    	if(externalUrl != null) return externalUrl;
     	return "http" + (secure ? "s" : "") +"://"+ip+":"+port+"/"+arg;
     }
     
