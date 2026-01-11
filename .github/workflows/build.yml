@@ -11,52 +11,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Compile
+      - name: Package JAR from existing classes
         shell: bash
         run: |
           set -euo pipefail
 
-          mkdir -p build/classes
+          # Sanity checks
+          test -f plugin.yml
+          test -d bin
 
-          # Collect source roots that actually exist in this repo
-          roots=()
-          for d in src com org net dev; do
-            if [ -d "$d" ]; then roots+=("$d"); fi
-          done
-
-          echo "Source roots: ${roots[*]}"
-
-          # Compile all .java found under those roots
-          mapfile -t sources < <(find "${roots[@]}" -type f -name "*.java")
-
-          echo "Java files: ${#sources[@]}"
-          if [ "${#sources[@]}" -eq 0 ]; then
-            echo "No Java sources found!"
+          # Ensure bin actually contains compiled .class files
+          if ! find bin -type f -name "*.class" | head -n 1 | grep -q .; then
+            echo "bin/ does not contain any .class files. Can't package."
             exit 1
           fi
 
-          # Target Java 8 bytecode for widest MC compatibility (javac 17 can do this)
-          javac --release 8 -encoding UTF-8 -d build/classes "${sources[@]}"
+          mkdir -p build
+          cp plugin.yml bin/plugin.yml
 
-          # Copy plugin.yml (Bukkit requires it in the jar root)
-          if [ -f plugin.yml ]; then
-            cp plugin.yml build/classes/plugin.yml
-          else
-            echo "plugin.yml not found at repo root!"
-            exit 1
-          fi
-
-      - name: Package JAR
-        shell: bash
-        run: |
-          set -euo pipefail
-          jar --create --file build/MediaPlayer.jar -C build/classes .
+          # Create jar (contents = bin/*)
+          (cd bin && jar --create --file ../build/MediaPlayer.jar .)
 
           echo "Built:"
           ls -lah build/MediaPlayer.jar
