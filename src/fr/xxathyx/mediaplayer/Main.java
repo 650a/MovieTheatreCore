@@ -225,23 +225,28 @@ public class Main extends JavaPlugin implements Listener {
 		updateFolder.mkdir();
 		
 		try {
-			URI uri = Main.class.getResource("translations/" + langage + ".yml").toURI();
-			if("jar".equals(uri.getScheme())) {
-			    for(FileSystemProvider provider: FileSystemProvider.installedProviders()) {
-			        if(provider.getScheme().equalsIgnoreCase("jar")) {
-			            try {
-			                provider.getFileSystem(uri);
-			            }catch (FileSystemNotFoundException e) {
-			                provider.newFileSystem(uri, Collections.emptyMap());
-			            }
-			        }
-			    }
+			URL translationUrl = Main.class.getResource("translations/" + langage + ".yml");
+			if(translationUrl == null) {
+				Bukkit.getLogger().warning("[MediaPlayer]: Missing bundled translation " + langage + ".yml, skipping updater translation sync.");
+			}else {
+				URI uri = translationUrl.toURI();
+				if("jar".equals(uri.getScheme())) {
+				    for(FileSystemProvider provider: FileSystemProvider.installedProviders()) {
+				        if(provider.getScheme().equalsIgnoreCase("jar")) {
+				            try {
+				                provider.getFileSystem(uri);
+				            }catch (FileSystemNotFoundException e) {
+				                provider.newFileSystem(uri, Collections.emptyMap());
+				            }
+				        }
+				    }
+				}
+				Path source = Paths.get(uri);
+				
+				Files.copy(source, updateTranslation.toPath(), StandardCopyOption.REPLACE_EXISTING);
+				
+				new ConfigurationUpdater(new File(getDataFolder() + "/translations/", langage + ".yml"), updateTranslation, "messages").update();
 			}
-			Path source = Paths.get(uri);
-			
-			Files.copy(source, updateTranslation.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			
-			new ConfigurationUpdater(new File(getDataFolder() + "/translations/", langage + ".yml"), updateTranslation, "messages").update();
 			
 		}catch (URISyntaxException | IOException | InvalidConfigurationException e) {
 	        Bukkit.getLogger().warning("[MediaPlayer]: If you are reloading the plugin skip this message otherwise failed to verify configurations.");

@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -70,9 +71,13 @@ public class ResourcePack {
         }
         
 		try {
-			Image pack = ImageIO.read(Main.class.getResource("resources/audio.png"));
-			BufferedImage bufferedPack = (BufferedImage) pack;
-			
+			URL packUrl = Main.class.getResource("resources/audio.png");
+			BufferedImage bufferedPack;
+			if(packUrl == null) {
+				bufferedPack = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
+			}else {
+				bufferedPack = ImageIO.read(packUrl);
+			}
 			ImageIO.write(bufferedPack, "png", new File(resourcePackFolder, "pack.png"));
 		}catch (IOException e) {
 			e.printStackTrace();
