@@ -161,8 +161,8 @@ public class ScreenCommands implements CommandExecutor, TabCompleter {
 				        
 				        Video video = plugin.getRegisteredVideos().get(Integer.parseInt(arg3[1]));
 				        
-				    	int width = (int) (Math.round(video.getWidth()/128)+1);
-				    	int height = (int) (Math.round(video.getHeight()/128)+1);
+				    	int width = (int) Math.ceil(video.getWidth() / 128.0);
+				    	int height = (int) Math.ceil(video.getHeight() / 128.0);
 				    	
 				        createScreen(player, width, height);
 				        player.sendMessage(configuration.screen_created(width + "x" + height));
