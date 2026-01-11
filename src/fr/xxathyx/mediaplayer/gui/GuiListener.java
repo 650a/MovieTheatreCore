@@ -15,6 +15,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import fr.xxathyx.mediaplayer.Main;
+import fr.xxathyx.mediaplayer.configuration.Configuration;
 import fr.xxathyx.mediaplayer.playback.PlaybackManager;
 import fr.xxathyx.mediaplayer.render.ScalingMode;
 import fr.xxathyx.mediaplayer.screen.Screen;
@@ -24,9 +25,11 @@ import fr.xxathyx.mediaplayer.video.Video;
 public class GuiListener implements Listener {
 
     private final Main plugin;
+    private final Configuration configuration;
 
     public GuiListener(Main plugin) {
         this.plugin = plugin;
+        this.configuration = new Configuration();
     }
 
     @EventHandler
@@ -62,10 +65,15 @@ public class GuiListener implements Listener {
         ScreenManager screenManager = plugin.getScreenManager();
         Screen screen = screenManager.getScreen(UUID.fromString(screenId));
         if (screen == null) {
+            ((Player) event.getWhoClicked()).sendMessage(ChatColor.RED + "Screen no longer exists.");
             return;
         }
 
         Player player = (Player) event.getWhoClicked();
+        if (!player.hasPermission("mediaplayer.screen.manage")) {
+            player.sendMessage(configuration.insufficient_permissions());
+            return;
+        }
         new NowPlayingMenu(plugin, screen).open(player);
     }
 
@@ -91,17 +99,46 @@ public class GuiListener implements Listener {
         PlaybackManager playbackManager = plugin.getPlaybackManager();
         Screen screen = screenManager.getScreen(UUID.fromString(screenId));
         if (screen == null) {
+            ((Player) event.getWhoClicked()).sendMessage(ChatColor.RED + "Screen no longer exists.");
             return;
         }
 
         Player player = (Player) event.getWhoClicked();
 
         switch (action) {
-            case "play" -> handlePlay(player, playbackManager, screen);
-            case "stop" -> playbackManager.stop(screen, null);
-            case "pause" -> playbackManager.pause(screen);
-            case "resume" -> playbackManager.resume(screen);
+            case "play" -> {
+                if (!player.hasPermission("mediaplayer.playback")) {
+                    player.sendMessage(configuration.insufficient_permissions());
+                    return;
+                }
+                handlePlay(player, playbackManager, screen);
+            }
+            case "stop" -> {
+                if (!player.hasPermission("mediaplayer.playback")) {
+                    player.sendMessage(configuration.insufficient_permissions());
+                    return;
+                }
+                playbackManager.stop(screen, null, true);
+            }
+            case "pause" -> {
+                if (!player.hasPermission("mediaplayer.playback")) {
+                    player.sendMessage(configuration.insufficient_permissions());
+                    return;
+                }
+                playbackManager.pause(screen);
+            }
+            case "resume" -> {
+                if (!player.hasPermission("mediaplayer.playback")) {
+                    player.sendMessage(configuration.insufficient_permissions());
+                    return;
+                }
+                playbackManager.resume(screen);
+            }
             case "scale" -> {
+                if (!player.hasPermission("mediaplayer.screen.manage")) {
+                    player.sendMessage(configuration.insufficient_permissions());
+                    return;
+                }
                 String modeRaw = container.get(scaleKey, PersistentDataType.STRING);
                 if (modeRaw != null) {
                     ScalingMode mode = ScalingMode.valueOf(modeRaw);

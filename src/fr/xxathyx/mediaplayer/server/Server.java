@@ -19,7 +19,7 @@ public class Server {
 	private final Main plugin = Main.getPlugin(Main.class);
 	private final Configuration configuration = new Configuration();
 	
-	public static File file;
+	private final File file;
 	
     private String ip = "localhost";
     private int port = getRandomNumber(1000, 8000);
@@ -29,7 +29,7 @@ public class Server {
     private HttpServer server;
     	
     public Server(File file) {
-    	Server.file=file;
+    	this.file = file;
     }
     
 	    public boolean start() {
@@ -82,7 +82,7 @@ public class Server {
         return true;
     }
     
-    static class FileHandler implements HttpHandler {
+    class FileHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
         	

@@ -22,3 +22,7 @@ permissions:
     description: Control playback on screens.
   mediaplayer.admin:
     description: Reload MediaPlayer.
+  mediaplayer.media.manage:
+    description: Manage cached media entries.
+  mediaplayer.media.admin:
+    description: Add/remove URL-based media and play direct URLs.

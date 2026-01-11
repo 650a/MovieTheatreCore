@@ -35,6 +35,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 
 import fr.xxathyx.mediaplayer.actionbar.ActionBarVersion;
 import fr.xxathyx.mediaplayer.audio.util.AudioUtilVersion;
+import fr.xxathyx.mediaplayer.audio.AudioPackManager;
 import fr.xxathyx.mediaplayer.commands.MediaPlayerCommands;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
 import fr.xxathyx.mediaplayer.configuration.updater.ConfigurationUpdater;
@@ -42,6 +43,8 @@ import fr.xxathyx.mediaplayer.ffmpeg.Ffmpeg;
 import fr.xxathyx.mediaplayer.ffmpeg.Ffprobe;
 import fr.xxathyx.mediaplayer.group.Group;
 import fr.xxathyx.mediaplayer.gui.GuiListener;
+import fr.xxathyx.mediaplayer.media.MediaLibrary;
+import fr.xxathyx.mediaplayer.media.MediaManager;
 import fr.xxathyx.mediaplayer.playback.PlaybackManager;
 import fr.xxathyx.mediaplayer.map.colors.MCSDGenBukkit;
 import fr.xxathyx.mediaplayer.map.colors.MapColorSpaceData;
@@ -130,6 +133,9 @@ public class Main extends JavaPlugin implements Listener {
 
 	private ScreenManager screenManager;
 	private PlaybackManager playbackManager;
+	private MediaLibrary mediaLibrary;
+	private MediaManager mediaManager;
+	private AudioPackManager audioPackManager;
 	
 	private final ArrayList<Group> groups = new ArrayList<>();
 	
@@ -272,6 +278,9 @@ public class Main extends JavaPlugin implements Listener {
         
         screenManager = new ScreenManager(this);
         playbackManager = new PlaybackManager(this, screenManager);
+        mediaLibrary = new MediaLibrary(this);
+        audioPackManager = new AudioPackManager(this);
+        mediaManager = new MediaManager(this, mediaLibrary, audioPackManager);
 
         MediaPlayerCommands mediaPlayerCommands = new MediaPlayerCommands(this);
         getCommand("mediaplayer").setExecutor(mediaPlayerCommands);
@@ -310,6 +319,9 @@ public class Main extends JavaPlugin implements Listener {
 
 		if(playbackManager != null) {
 			playbackManager.stopAll();
+		}
+		if(audioPackManager != null) {
+			audioPackManager.stopAll();
 		}
 		
 		for(Screen screen : registeredScreens) {
@@ -568,6 +580,14 @@ public class Main extends JavaPlugin implements Listener {
 
 	public PlaybackManager getPlaybackManager() {
 		return playbackManager;
+	}
+
+	public MediaManager getMediaManager() {
+		return mediaManager;
+	}
+
+	public MediaLibrary getMediaLibrary() {
+		return mediaLibrary;
 	}
 	
     /**

@@ -35,6 +35,9 @@ public class Configuration {
 	private final File videosFolder = new File(plugin.getDataFolder() + "/videos/");
 	private final File screensFolder = new File(plugin.getDataFolder() + "/screens/");
 	private final File mapsFolder = new File(plugin.getDataFolder() + "/images/maps/");
+	private final File mediaCacheFolder = new File(plugin.getDataFolder() + "/cache/videos/");
+	private final File resourcePackFolder = new File(plugin.getDataFolder() + "/resourcepacks/");
+	private final File audioChunksFolder = new File(plugin.getDataFolder() + "/audio/");
 	
 	private FileConfiguration fileconfiguration;
 	
@@ -88,6 +91,20 @@ public class Configuration {
 			
 			fileconfiguration.set("plugin.detect-duplicated-frames", false);
 			fileconfiguration.set("plugin.ressemblance-to-skip", 100);
+
+			fileconfiguration.set("media.allowed-domains", java.util.Collections.emptyList());
+			fileconfiguration.set("media.max-download-mb", 1024);
+			fileconfiguration.set("media.download-timeout-seconds", 30);
+			fileconfiguration.set("media.cache-max-gb", 5);
+			fileconfiguration.set("media.youtube-resolver-path", "");
+
+			fileconfiguration.set("audio.enabled", false);
+			fileconfiguration.set("audio.chunk-seconds", 2);
+			fileconfiguration.set("audio.codec", "vorbis");
+			fileconfiguration.set("audio.sample-rate", 48000);
+
+			fileconfiguration.set("resourcepack.host-url", "");
+			fileconfiguration.set("resourcepack.sha1", "");
 			
 			try {
 				fileconfiguration.save(configurationFile);
@@ -104,6 +121,15 @@ public class Configuration {
 		}
 		if(!mapsFolder.exists()) {
 			mapsFolder.mkdirs();
+		}
+		if(!mediaCacheFolder.exists()) {
+			mediaCacheFolder.mkdirs();
+		}
+		if(!resourcePackFolder.exists()) {
+			resourcePackFolder.mkdirs();
+		}
+		if(!audioChunksFolder.exists()) {
+			audioChunksFolder.mkdirs();
 		}
 	}
 	
@@ -172,6 +198,18 @@ public class Configuration {
 	
 	public File getScreensFolder() {
 		return screensFolder;
+	}
+
+	public File getMediaCacheFolder() {
+		return mediaCacheFolder;
+	}
+
+	public File getResourcePackFolder() {
+		return resourcePackFolder;
+	}
+
+	public File getAudioChunksFolder() {
+		return audioChunksFolder;
 	}
 	
     /**
@@ -367,6 +405,61 @@ public class Configuration {
 	
 	public int maximum_distance_to_receive() {
 		return getConfigFile().getInt("plugin.maximum-distance-to-receive");
+	}
+
+	public java.util.List<String> media_allowed_domains() {
+		return getConfigFile().getStringList("media.allowed-domains");
+	}
+
+	public long media_max_download_mb() {
+		return getConfigFile().getLong("media.max-download-mb");
+	}
+
+	public int media_download_timeout_seconds() {
+		return getConfigFile().getInt("media.download-timeout-seconds");
+	}
+
+	public long media_cache_max_gb() {
+		return getConfigFile().getLong("media.cache-max-gb");
+	}
+
+	public String media_youtube_resolver_path() {
+		return getConfigFile().getString("media.youtube-resolver-path");
+	}
+
+	public boolean audio_enabled() {
+		return getConfigFile().getBoolean("audio.enabled");
+	}
+
+	public int audio_chunk_seconds() {
+		return getConfigFile().getInt("audio.chunk-seconds");
+	}
+
+	public String audio_codec() {
+		return getConfigFile().getString("audio.codec");
+	}
+
+	public int audio_sample_rate() {
+		return getConfigFile().getInt("audio.sample-rate");
+	}
+
+	public String resourcepack_host_url() {
+		return getConfigFile().getString("resourcepack.host-url");
+	}
+
+	public String resourcepack_sha1() {
+		return getConfigFile().getString("resourcepack.sha1");
+	}
+
+	public void set_resourcepack_sha1(String sha1) {
+		fileconfiguration = new YamlConfiguration();
+		try {
+			fileconfiguration.load(configurationFile);
+			fileconfiguration.set("resourcepack.sha1", sha1);
+			fileconfiguration.save(configurationFile);
+		}catch (IOException | InvalidConfigurationException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public int maximum_playing_videos() {

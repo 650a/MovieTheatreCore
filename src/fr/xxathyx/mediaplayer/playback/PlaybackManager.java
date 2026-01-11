@@ -22,7 +22,11 @@ public class PlaybackManager {
     }
 
     public PlaybackSession start(Screen screen, Video video) {
-        stop(screen, ScreenState.STOPPING);
+        return start(screen, video, PlaybackOptions.defaultOptions());
+    }
+
+    public PlaybackSession start(Screen screen, Video video, PlaybackOptions options) {
+        stop(screen, ScreenState.STOPPING, false);
         screenManager.setState(screen.getUUID(), ScreenState.PREPARING);
 
         try {
@@ -31,7 +35,7 @@ public class PlaybackManager {
             plugin.getLogger().warning("[MediaPlayer]: Failed to store last video name for screen " + screen.getName());
         }
 
-        PlaybackSession session = new PlaybackSession(plugin, screen, video, this);
+        PlaybackSession session = new PlaybackSession(plugin, screen, video, this, options);
         sessions.put(screen.getUUID(), session);
         screenManager.setState(screen.getUUID(), ScreenState.PLAYING);
         session.start();
@@ -52,10 +56,10 @@ public class PlaybackManager {
         }
     }
 
-    public void stop(Screen screen, ScreenState state) {
+    public void stop(Screen screen, ScreenState state, boolean showThumbnail) {
         PlaybackSession session = sessions.remove(screen.getUUID());
         if (session != null) {
-            session.stop(true);
+            session.stop(showThumbnail);
         }
         screenManager.setState(screen.getUUID(), state == null ? ScreenState.IDLE : state);
     }
