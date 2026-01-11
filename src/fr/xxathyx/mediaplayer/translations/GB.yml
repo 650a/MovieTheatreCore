@@ -1,6 +1,6 @@
 messages:
   plugin-outdated: "&cThe used version of the plugin is out of date, activate the
-    auto-update option from the configuration, or do it manually from: https://www.dropbox.com/s/zt4acgwcdd8flx5/MediaPlayer.jar?dl=1"
+    auto-update option from the configuration, or do it manually from: https://github.com/650a/MediaPlayer/releases/latest/download/MediaPlayer.jar"
   video-load-requested: "&aLoad request sent, you will be informed about the
     progress of the load."
   video-load-notice: "&7(The longer a video is, the more it will load)"

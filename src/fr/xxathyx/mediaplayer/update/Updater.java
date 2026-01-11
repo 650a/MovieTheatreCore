@@ -30,8 +30,8 @@ public class Updater {
 	private final Configuration configuration = new Configuration();
 	
 	/** 
-	* Updates the plugin if it is outdated, the server need to be connected to internet and
-	* https://api.spigotmc.org have to be responding to the server. The {@link Configuration#plugin_auto_update()}
+	* Updates the plugin if it is outdated, the server need to be connected to internet. The
+	* {@link Configuration#plugin_auto_update()}
 	* have to return true in order to download the plugin jar.
 	* 
 	* Update isn't done asynchronously, and not effective after the plugin download in order to avoid reload issues.
@@ -65,10 +65,9 @@ public class Updater {
 	}
 	
 	/** 
-	* Gets whether the used plugin version isn't the same as the last version of the plugin on spigot.
+	* Gets whether the used plugin version isn't the same as the last version of the plugin.
 	* 
-	* <p>The server need to be connected to internet and <a href="https://api.spigotmc.org">https://api.spigotmc.org</a>
-	* have to be responding to the server.
+	* <p>The server need to be connected to internet to compare the remote jar with the current plugin.
 	* 
 	* @return Whether the used plugin is outdated.
 	*/
@@ -77,8 +76,7 @@ public class Updater {
 	    try {
 	        
 			File jar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());						
-			@SuppressWarnings("deprecation")
-			URL onlineJar = new URL("https://github.com/Xxathyx/MediaPlayer/releases/download/release/MediaPlayer.jar");
+			URL onlineJar = new URL(configuration.plugin_update_url());
 			
 			long onlineLength = onlineJar.openConnection().getContentLengthLong();
 	        
@@ -94,14 +92,7 @@ public class Updater {
 	/** 
 	* Downloads the latest version of the plugin.
 	* 
-	* <p> <strong>Note: </strong>For the moment the plugin link will change on every update, because it is stored
-	* on Spigot.
-	* 
-	* <p>The actual link is: <a href="https://www.dropbox.com/s/v1h95zrd5cnken2/MediaPlayer.jar?dl=1">https
-	* :https://www.dropbox.com/s/v1h95zrd5cnken2/MediaPlayer.jar?dl=1</a>.
-	* 
-	* The server need to be connected to internet and <a href="https://www.spigotmc.org">https://www.spigotmc.org</a>
-	* have to be responding to the server.
+	* The server need to be connected to internet to download the jar from the configured update URL.
 	* 
 	* @throws IOException When failed or interrupted I/O operations occurs.
 	* @throws URISyntaxException When the oldest jar locating is failed.
@@ -113,8 +104,7 @@ public class Updater {
 			File jar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
 			File newJar = new File(plugin.getDataFolder().getParentFile() + "/update/" + jar.getName());
 						
-			@SuppressWarnings("deprecation")
-			URL onlineJar = new URL("https://github.com/Xxathyx/MediaPlayer/releases/download/release/MediaPlayer.jar");
+			URL onlineJar = new URL(configuration.plugin_update_url());
 			long onlineLength = onlineJar.openConnection().getContentLengthLong();
 						
 			if(onlineLength!=jar.length()) FileUtils.copyURLToFile(onlineJar, newJar);
