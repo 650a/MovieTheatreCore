@@ -15,14 +15,54 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
-          cache: maven
+          java-version: "17"
 
-      - name: Build with Maven
-        run: mvn -B clean package
+      - name: Compile
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p build/classes
+
+          # Collect source roots that actually exist in this repo
+          roots=()
+          for d in src com org net dev; do
+            if [ -d "$d" ]; then roots+=("$d"); fi
+          done
+
+          echo "Source roots: ${roots[*]}"
+
+          # Compile all .java found under those roots
+          mapfile -t sources < <(find "${roots[@]}" -type f -name "*.java")
+
+          echo "Java files: ${#sources[@]}"
+          if [ "${#sources[@]}" -eq 0 ]; then
+            echo "No Java sources found!"
+            exit 1
+          fi
+
+          # Target Java 8 bytecode for widest MC compatibility (javac 17 can do this)
+          javac --release 8 -encoding UTF-8 -d build/classes "${sources[@]}"
+
+          # Copy plugin.yml (Bukkit requires it in the jar root)
+          if [ -f plugin.yml ]; then
+            cp plugin.yml build/classes/plugin.yml
+          else
+            echo "plugin.yml not found at repo root!"
+            exit 1
+          fi
+
+      - name: Package JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar --create --file build/MediaPlayer.jar -C build/classes .
+
+          echo "Built:"
+          ls -lah build/MediaPlayer.jar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: MediaPlayer-jar
-          path: target/*.jar
+          path: build/MediaPlayer.jar
