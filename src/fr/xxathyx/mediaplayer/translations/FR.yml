@@ -1,6 +1,6 @@
 messages:
   plugin-outdated: "&cLa version utilisée du plugin n'est plus à jour, activez l'option
-    auto-update depuis la configuration, ou faites-le manuellement depuis: https://www.dropbox.com/s/zt4acgwcdd8flx5/MediaPlayer.jar?dl=1"
+    auto-update depuis la configuration, ou faites-le manuellement depuis: https://github.com/hwic/MediaPlayer/releases/latest/download/MediaPlayer.jar"
   video-load-requested: "&aRequête de chargement envoyée, vous serez informé sur la
     progression du chargement."
   video-load-notice: "&7(Plus une vidéo est longue plus le chargement en est de même)"

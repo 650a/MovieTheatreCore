@@ -57,6 +57,7 @@ public class Configuration {
 			
 			fileconfiguration.set("plugin.auto-update", true);
 			fileconfiguration.set("plugin.auto-update-libraries", true);
+			fileconfiguration.set("plugin.update-url", plugin.getDescription().getWebsite());
 			fileconfiguration.set("plugin.force-permissions", true);
 			fileconfiguration.set("plugin.external-communication", true);
 			fileconfiguration.set("plugin.packet-compression", true);
@@ -300,6 +301,14 @@ public class Configuration {
 	
 	public boolean plugin_auto_update_libraries() {
 		return getConfigFile().getBoolean("plugin.auto-update-libraries");
+	}
+
+	public String plugin_update_url() {
+		String updateUrl = getConfigFile().getString("plugin.update-url");
+		if(updateUrl == null || updateUrl.isEmpty()) {
+			return plugin.getDescription().getWebsite();
+		}
+		return updateUrl;
 	}
 	
 	public boolean plugin_force_permissions() {

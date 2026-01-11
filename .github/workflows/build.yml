@@ -31,8 +31,21 @@ jobs:
       - name: Build with Maven
         run: mvn -B -ntp -DskipTests clean package
 
+      - name: Prepare release artifact
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir -p dist
+          JAR_PATH=$(ls target/*.jar | head -n 1)
+          cp "$JAR_PATH" dist/MediaPlayer.jar
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: MediaPlayer
           path: target/*.jar
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/MediaPlayer.jar

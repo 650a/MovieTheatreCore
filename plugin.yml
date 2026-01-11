@@ -3,7 +3,7 @@ name: MediaPlayer
 version: 1.0.3
 author: hwic
 description: Allows you to play and use various medias on Minecraft.
-website: https://www.dropbox.com/scl/fi/vpwd2jg4c82w3ialikipn/MediaPlayer.jar?rlkey=uuik96o8rwypliu6q3d54s1gn&st=y0rnbnal&dl=1
+website: https://github.com/hwic/MediaPlayer/releases/latest/download/MediaPlayer.jar
 api-version: 1.13
 
 commands:
