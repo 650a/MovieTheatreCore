@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -858,10 +859,15 @@ public class Screen {
 	public void createThumbnail() {
 		
 		try {
-			Image base = ImageIO.read(Main.class.getResource("resources/default.png"));
-			BufferedImage bufferedBase = (BufferedImage) base;
+			URL baseUrl = Main.class.getResource("resources/default.png");
+			BufferedImage bufferedBase;
+			if(baseUrl == null) {
+				bufferedBase = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
+			}else {
+				bufferedBase = ImageIO.read(baseUrl);
+			}
 								
-			Image resizedBase = base.getScaledInstance((int) Math.round(bufferedBase.getWidth()*((double) width*128/bufferedBase.getWidth())),
+			Image resizedBase = bufferedBase.getScaledInstance((int) Math.round(bufferedBase.getWidth()*((double) width*128/bufferedBase.getWidth())),
 					(int) Math.round(bufferedBase.getHeight()*((double) height*128/bufferedBase.getHeight())), Image.SCALE_DEFAULT);
 						
 			ImageIO.write(ImageUtil.convertToBufferedImage(resizedBase), "png", getThumbnail());
