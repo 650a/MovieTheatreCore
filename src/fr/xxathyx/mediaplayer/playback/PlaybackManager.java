@@ -22,7 +22,7 @@ public class PlaybackManager {
     }
 
     public PlaybackSession start(Screen screen, Video video) {
-        stop(screen, ScreenState.STOPPING);
+        stop(screen, ScreenState.STOPPING, false);
         screenManager.setState(screen.getUUID(), ScreenState.PREPARING);
 
         try {
@@ -52,10 +52,10 @@ public class PlaybackManager {
         }
     }
 
-    public void stop(Screen screen, ScreenState state) {
+    public void stop(Screen screen, ScreenState state, boolean showThumbnail) {
         PlaybackSession session = sessions.remove(screen.getUUID());
         if (session != null) {
-            session.stop(true);
+            session.stop(showThumbnail);
         }
         screenManager.setState(screen.getUUID(), state == null ? ScreenState.IDLE : state);
     }

@@ -27,6 +27,8 @@ Root command: `/mediaplayer` (alias `/mp`).
 * `/mp scale <screen> <fit|fill|stretch>` - Change scaling mode.
 * `/mp reload` - Reload MediaPlayer screens and stop sessions.
 
+Screen list entries open a Screen Control GUI with Play/Stop/Pause/Resume and scaling shortcuts.
+
 ## Permissions
 
 * `mediaplayer.command` - Access to `/mediaplayer`.
@@ -85,4 +87,3 @@ Notice that those integers represent the real location of the click according to
 ### How to have audio :
 
 In order to have audio, users must simply set their 'Server Resource Pack' to ```Prompt``` or ```Enabled```.
-### When everyone is ready you can type ```vid start``` to run the video, to force starting without waiting for everyone to be ready you can type ```vid start``` anyways.

@@ -17,8 +17,8 @@ public class FrameScaler {
 
         switch (mode) {
             case FIT -> {
-                int drawWidth = (int) Math.round(source.getWidth() * transform.scaleX());
-                int drawHeight = (int) Math.round(source.getHeight() * transform.scaleY());
+                int drawWidth = transform.scaledWidth(source.getWidth());
+                int drawHeight = transform.scaledHeight(source.getHeight());
                 graphics.drawImage(source, transform.offsetX(), transform.offsetY(), drawWidth, drawHeight, null);
             }
             case FILL -> {

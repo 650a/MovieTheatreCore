@@ -101,7 +101,7 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                             sender.sendMessage(ChatColor.RED + "Unknown screen: " + args[2]);
                             return true;
                         }
-                        playbackManager.stop(screen, null);
+                        playbackManager.stop(screen, null, true);
                         screenManager.deleteScreen(screen);
                         sender.sendMessage(ChatColor.GREEN + "Screen deleted: " + screen.getName());
                         return true;
@@ -160,7 +160,7 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(ChatColor.RED + "Unknown screen: " + args[1]);
                     return true;
                 }
-                playbackManager.stop(screen, null);
+                playbackManager.stop(screen, null, true);
                 sender.sendMessage(ChatColor.GREEN + "Stopped playback on " + screen.getName() + ".");
                 return true;
             }

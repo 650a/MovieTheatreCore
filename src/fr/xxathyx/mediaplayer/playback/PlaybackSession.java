@@ -8,6 +8,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.imageio.ImageIO;
@@ -30,6 +32,7 @@ import fr.xxathyx.mediaplayer.render.ScalingMode;
 import fr.xxathyx.mediaplayer.screen.Screen;
 import fr.xxathyx.mediaplayer.screen.ScreenState;
 import fr.xxathyx.mediaplayer.server.Server;
+import fr.xxathyx.mediaplayer.util.Scheduler;
 import fr.xxathyx.mediaplayer.video.Video;
 import fr.xxathyx.mediaplayer.video.data.VideoData;
 
@@ -41,9 +44,12 @@ public class PlaybackSession {
     private final Video video;
     private final PlaybackManager manager;
     private final UUID sessionId;
+    private final Scheduler scheduler;
     private final FrameScaler scaler = new FrameScaler();
     private final ItemStacks itemStacks = new ItemStacks();
     private final AtomicBoolean rendering = new AtomicBoolean(false);
+    private final AtomicBoolean stopping = new AtomicBoolean(false);
+    private final Set<BukkitTask> renderTasks = ConcurrentHashMap.newKeySet();
 
     private final Set<UUID> viewers = new HashSet<>();
 
@@ -53,6 +59,7 @@ public class PlaybackSession {
     private int frameIndex = 0;
     private long lastFrameNanos = 0L;
     private long frameDurationNanos;
+    private PlaybackState state = PlaybackState.IDLE;
 
     private Server resourcePackServer;
 
@@ -64,6 +71,7 @@ public class PlaybackSession {
         this.manager = manager;
         this.sessionId = UUID.randomUUID();
         this.frameDurationNanos = (long) (1_000_000_000L / Math.max(1.0, video.getFrameRate()));
+        this.scheduler = new Scheduler(plugin);
     }
 
     public UUID getSessionId() {
@@ -83,11 +91,13 @@ public class PlaybackSession {
             tickTask.cancel();
         }
 
+        state = PlaybackState.PREPARING;
         active = true;
         setupResourcePack();
         lastFrameNanos = System.nanoTime();
+        state = PlaybackState.PLAYING;
 
-        tickTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0L, 1L);
+        tickTask = scheduler.runSyncRepeating(this::tick, 0L, 1L);
     }
 
     public void pause() {
@@ -99,13 +109,23 @@ public class PlaybackSession {
     }
 
     public void stop(boolean showThumbnail) {
+        if (!stopping.compareAndSet(false, true)) {
+            return;
+        }
+        state = PlaybackState.STOPPING;
+        active = false;
+        paused = false;
+        rendering.set(false);
+
         if (tickTask != null) {
             tickTask.cancel();
+            tickTask = null;
         }
-        tickTask = null;
-        paused = false;
-        active = false;
-        rendering.set(false);
+
+        for (BukkitTask task : renderTasks) {
+            task.cancel();
+        }
+        renderTasks.clear();
 
         if (resourcePackServer != null) {
             resourcePackServer.stop();
@@ -124,7 +144,7 @@ public class PlaybackSession {
         }
 
         if (showThumbnail) {
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            scheduler.runSync(() -> {
                 screen.loadThumbnail();
                 int[] ids = screen.getIds();
                 List<ItemFrame> frames = screen.getFrames();
@@ -138,6 +158,8 @@ public class PlaybackSession {
         }
 
         viewers.clear();
+        state = PlaybackState.IDLE;
+        stopping.set(false);
     }
 
     private void tick() {
@@ -166,16 +188,30 @@ public class PlaybackSession {
                 rendering.set(false);
                 return;
             }
-            renderEnd();
+            onEnd();
             return;
         }
 
         List<UUID> viewerSnapshot = new ArrayList<>(viewers);
 
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> renderFrame(currentFrame, viewerSnapshot));
+        AtomicReference<BukkitTask> taskRef = new AtomicReference<>();
+        BukkitTask task = scheduler.runAsync(() -> {
+            try {
+                renderFrame(currentFrame, viewerSnapshot);
+            } finally {
+                BukkitTask current = taskRef.get();
+                if (current != null) {
+                    renderTasks.remove(current);
+                }
+            }
+        });
+        if (task != null) {
+            renderTasks.add(task);
+            taskRef.set(task);
+        }
     }
 
-    private void renderEnd() {
+    private void onEnd() {
         rendering.set(false);
         stop(true);
         manager.clearSession(screen.getUUID(), ScreenState.IDLE);
@@ -206,13 +242,14 @@ public class PlaybackSession {
                 buffers[i] = MapColorPalette.convertImage(tiles[i]);
             }
 
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            scheduler.runSync(() -> {
                 if (active) {
                     updateMaps(buffers, viewerSnapshot);
                 }
             });
         } catch (IOException e) {
-            Bukkit.getScheduler().runTask(plugin, () -> plugin.getLogger().warning("[MediaPlayer]: Failed to render frame " + index + " for video " + video.getName()));
+            scheduler.runSync(() -> plugin.getLogger().warning("[MediaPlayer]: Failed to render frame " + index + " for video " + video.getName()));
+            onError();
         } finally {
             rendering.set(false);
         }
@@ -262,6 +299,12 @@ public class PlaybackSession {
                 player.playSound(player.getLocation(), "mediaplayer." + i, 10, 1);
             }
         }
+    }
+
+    private void onError() {
+        state = PlaybackState.ERROR;
+        stop(true);
+        manager.clearSession(screen.getUUID(), ScreenState.ERROR);
     }
 
     private void setupResourcePack() {

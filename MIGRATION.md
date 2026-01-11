@@ -24,6 +24,7 @@ Use:
 
 * Each screen now stores a `screen.scale-mode` key in `screens/<uuid>/<uuid>.yml`.
 * Default is **FIT** (preserves aspect ratio with letterboxing).
+* Scaling math now uses exact crop/scale calculations to avoid off-by-one borders.
 
 ## Resource usage
 
@@ -33,6 +34,7 @@ Use:
 
 * The Screen Manager GUI is available via `/mp screen list`.
 * The Now Playing GUI is accessible by clicking a screen entry.
+* GUI actions now enforce the same permissions as the commands.
 
 ## What you need to do
 
@@ -42,3 +44,4 @@ Use:
    * `mediaplayer.playback`
    * `mediaplayer.admin`
 2. (Optional) Set scaling mode per screen with `/mp scale <screen> <fit|fill|stretch>`.
+3. No configuration migration is required beyond ensuring `screen.scale-mode` exists (auto-added on load).

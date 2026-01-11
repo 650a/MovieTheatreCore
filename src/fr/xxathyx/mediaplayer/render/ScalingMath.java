@@ -25,20 +25,18 @@ public final class ScalingMath {
             );
             case FIT -> {
                 double scale = Math.min((double) dstWidth / (double) srcWidth, (double) dstHeight / (double) srcHeight);
-                int scaledWidth = (int) Math.round(srcWidth * scale);
-                int scaledHeight = (int) Math.round(srcHeight * scale);
+                int scaledWidth = Math.max(1, (int) Math.floor(srcWidth * scale));
+                int scaledHeight = Math.max(1, (int) Math.floor(srcHeight * scale));
                 int offsetX = (dstWidth - scaledWidth) / 2;
                 int offsetY = (dstHeight - scaledHeight) / 2;
-                yield new ScalingTransform(scale, scale, offsetX, offsetY, 0, 0, srcWidth, srcHeight);
+                double scaledX = (double) scaledWidth / (double) srcWidth;
+                double scaledY = (double) scaledHeight / (double) srcHeight;
+                yield new ScalingTransform(scaledX, scaledY, offsetX, offsetY, 0, 0, srcWidth, srcHeight);
             }
             case FILL -> {
-                int cropWidth = srcWidth;
-                int cropHeight = srcHeight;
-                if (srcAspect > dstAspect) {
-                    cropWidth = (int) Math.round(srcHeight * dstAspect);
-                } else if (srcAspect < dstAspect) {
-                    cropHeight = (int) Math.round(srcWidth / dstAspect);
-                }
+                double scale = Math.max((double) dstWidth / (double) srcWidth, (double) dstHeight / (double) srcHeight);
+                int cropWidth = Math.min(srcWidth, (int) Math.ceil(dstWidth / scale));
+                int cropHeight = Math.min(srcHeight, (int) Math.ceil(dstHeight / scale));
                 int cropX = (srcWidth - cropWidth) / 2;
                 int cropY = (srcHeight - cropHeight) / 2;
                 double scaleX = (double) dstWidth / (double) cropWidth;
