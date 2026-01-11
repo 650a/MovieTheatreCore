@@ -9,84 +9,34 @@
   <name>MediaPlayer</name>
   <packaging>jar</packaging>
 
-  <!-- This repo has sources in /src (not Maven's /src/main/java) -->
-  <build>
-    <sourceDirectory>${project.basedir}/src</sourceDirectory>
-
-    <resources>
-      <resource>
-        <directory>${project.basedir}</directory>
-        <includes>
-          <include>plugin.yml</include>
-        </includes>
-      </resource>
-    </resources>
-
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.12.1</version>
-        <configuration>
-          <!-- Paper 1.20.4 uses Java 17 -->
-          <release>17</release>
-          <encoding>UTF-8</encoding>
-        </configuration>
-      </plugin>
-
-      <!-- Shade non-provided deps into the jar -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>3.6.0</version>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals><goal>shade</goal></goals>
-            <configuration>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-              <minimizeJar>false</minimizeJar>
-              <!-- Don't bundle Paper / BKCommonLib -->
-              <filters>
-                <filter>
-                  <artifact>com.bergerkiller.bukkit:BKCommonLib</artifact>
-                  <excludes><exclude>**</exclude></excludes>
-                </filter>
-                <filter>
-                  <artifact>io.papermc.paper:paper</artifact>
-                  <excludes><exclude>**</exclude></excludes>
-                </filter>
-              </filters>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
 
   <repositories>
-    <!-- BKCommonLib repo -->
-    <repository>
-      <id>mg-dev</id>
-      <url>https://ci.mg-dev.eu/plugin/repository/everything</url>
-    </repository>
-    <!-- Paper public repo -->
     <repository>
       <id>papermc</id>
       <url>https://repo.papermc.io/repository/maven-public/</url>
     </repository>
+
+    <!-- BKCommonLib / Mountiplex -->
+    <repository>
+      <id>mg-dev</id>
+      <url>https://ci.mg-dev.eu/plugin/repository/everything/</url>
+    </repository>
   </repositories>
 
   <dependencies>
-    <!-- Compile against Paper server jar (contains CraftBukkit/NMS) -->
+    <!-- Paper API -->
     <dependency>
       <groupId>io.papermc.paper</groupId>
-      <artifactId>paper</artifactId>
+      <artifactId>paper-api</artifactId>
       <version>1.20.4-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
 
-    <!-- BKCommonLib (provided: you install BKCommonLib on the server) -->
+    <!-- BKCommonLib (plugin dependency, don't shade into your jar) -->
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
@@ -94,7 +44,7 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Your missing libraries -->
+    <!-- Your libraries (these SHOULD be shaded to avoid missing-dep issues) -->
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
@@ -131,16 +81,78 @@
       <version>0.8.0</version>
     </dependency>
 
+    <!-- IMPORTANT: do NOT bundle netty-all into Paper plugins (Paper already has Netty) -->
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
       <version>4.1.107.Final</version>
+      <scope>provided</scope>
     </dependency>
 
+    <!-- Usually unnecessary on Paper; keep provided if code uses it -->
     <dependency>
       <groupId>net.md-5</groupId>
       <artifactId>bungeecord-chat</artifactId>
       <version>1.20-R0.2</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.12.1</version>
+        <configuration>
+          <release>${maven.compiler.release}</release>
+        </configuration>
+      </plugin>
+
+      <!-- Shade your bundled libs (NOT Paper, NOT BKCommonLib, NOT Netty) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+
+              <artifactSet>
+                <excludes>
+                  <exclude>io.papermc.paper:paper-api</exclude>
+                  <exclude>com.bergerkiller.bukkit:BKCommonLib</exclude>
+                  <exclude>io.netty:netty-all</exclude>
+                  <exclude>net.md-5:bungeecord-chat</exclude>
+                </excludes>
+              </artifactSet>
+
+              <!-- Avoid classpath conflicts with server-provided libs -->
+              <relocations>
+                <relocation>
+                  <pattern>com.google.common</pattern>
+                  <shadedPattern>fr.xxathyx.mediaplayer.libs.guava</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>com.google.gson</pattern>
+                  <shadedPattern>fr.xxathyx.mediaplayer.libs.gson</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.apache.commons</pattern>
+                  <shadedPattern>fr.xxathyx.mediaplayer.libs.apachecommons</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>net.bramp.ffmpeg</pattern>
+                  <shadedPattern>fr.xxathyx.mediaplayer.libs.ffmpeg</shadedPattern>
+                </relocation>
+              </relocations>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
