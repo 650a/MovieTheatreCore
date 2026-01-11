@@ -745,8 +745,6 @@ public class Screen {
 		this.videoInstance = videoInstance;
 		this.compressed = video.isCacheCompressed();
 		this.ids = getIds();
-		this.width = video.getVideoData().getMinecraftWidth();
-		this.height = video.getVideoData().getMinecraftHeight();
 		
 		try {
 			
@@ -782,8 +780,6 @@ public class Screen {
 			this.frames = getFrames();
 			this.content = content;
 			this.ids = getIds();
-			this.width = image.getWidth();
-			this.height = image.getHeight();
 			
 			ArrayList<ItemFrame> frames = new ArrayList<>();
 			ItemFrame keyframe = getFrames().get(content.getKeyFrame());
@@ -833,8 +829,6 @@ public class Screen {
 			this.video = video;
 			this.videoData = video.getVideoData();
 			this.ids = getIds();
-			this.width = video.getVideoData().getMinecraftWidth();
-			this.height = video.getVideoData().getMinecraftHeight();
 		}
 		
 		try {
@@ -935,9 +929,13 @@ public class Screen {
 	*/
 	
 	public void remove() {
-		for(int i = 0; i < getBlocks().size(); i++) {
-			getFrames().get(i).remove();
-			getBlocks().get(i).setType(Material.AIR);
+		ArrayList<ItemFrame> frames = getFrames();
+		ArrayList<Block> blocks = getBlocks();
+		for(int i = 0; i < blocks.size(); i++) {
+			if(i < frames.size() && frames.get(i) != null) {
+				frames.get(i).remove();
+			}
+			blocks.get(i).setType(Material.AIR);
 		}
 	}
 	
@@ -1006,7 +1004,7 @@ public class Screen {
 						Player player = ((Player)entity);
 						
 						if(!listeners.contains(player.getUniqueId())) {
-							if(video.isAudioEnabled() && !video.isStreamed()) {
+							if(video.isAudioEnabled() && !video.isStreamed() && server != null) {
 								player.setResourcePack(server.url().replaceAll("%name%", video.getName()+".zip"));
 							}
 							listeners.add(player.getUniqueId());

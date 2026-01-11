@@ -18,7 +18,7 @@ messages:
   video-selected: "&aYou have just selected the video &l%video%&a, assign it
     by clicking on the top left corner of a screen."
   video-assigned: "&aYou have just assigned the video &l%video% &a to this screen, &l/video
-    start &to play it."
+    start &ato play it."
   video-not-enought-space: "&cYou don't have enough space to load &l%video%&c."
   video-description-updated: "&aYou have just updated the description of &l%video%&c
     &ainto %description%&a."
@@ -104,8 +104,8 @@ messages:
   image-rendered: "&aThe image rendering &l%image% &ais finished."
   image-deleted: "&aYou have just deleted the &l%image%&a."
   image-received: "&aYou have just received the image poster: &l%image%&a."
-  image-gived: "&you have just sent a poster of the image &l%image%&a to &l%player%&a."
-  image-placed: "&you have just placed the image: &l%image%&a."
+  image-gived: "&aYou have just sent a poster of the image &l%image%&a to &l%player%&a."
+  image-placed: "&aYou have just placed the image: &l%image%&a."
   image-removed: "&aYou have just removed the image: &l%image%&a."
   image-not-found: "&cThe specified image cannot be found."
   image-invalid: "&cThe address, index or filename entered is invalid."
