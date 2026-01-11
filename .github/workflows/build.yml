@@ -24,4 +24,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MediaPlayer
-          path: target/*.jar
+          path: |
+            target/*.jar
+            !target/*-sources.jar
+            !target/*-javadoc.jar
+            !target/original-*.jar
+          if-no-files-found: error
