@@ -18,7 +18,7 @@ import fr.xxathyx.mediaplayer.video.Video;
 * The InventoryClickVideos class implements {@link Listener}, it consist
 * of a single event method {@link #onClick(InventoryClickEvent)}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

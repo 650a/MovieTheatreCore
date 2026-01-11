@@ -7,7 +7,7 @@ import fr.xxathyx.mediaplayer.configuration.Configuration;
 * This used in the {@link Notification} system to redirect on a real {@link String}
 * message through the {@link Configuration}, see {@link #toString(String[])}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

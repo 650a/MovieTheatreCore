@@ -7,7 +7,7 @@ import java.util.List;
 * The Format class serves as an utility class. As named, it contains compatible videos and streams format
 * list, see {@link #getCompatibleFormats()} and {@link #getCompatibleStreamsFormats()}.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

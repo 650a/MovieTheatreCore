@@ -10,7 +10,7 @@ import fr.xxathyx.mediaplayer.screen.Screen;
 * Represents an event that is called when a player interacts with an screen, this event
 * isn't cancellable.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-03 
 */

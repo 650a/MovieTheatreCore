@@ -44,7 +44,7 @@ import fr.xxathyx.mediaplayer.util.ProgressBar;
 * opperations, this shouldn't cause problems to be runned asynchronously until video
 * thumbnail creation but again its widely stable.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */
@@ -167,13 +167,22 @@ public class TaskAsyncLoadVideo extends BukkitRunnable {
 	        if(!video.getFormat().equalsIgnoreCase("m3u8")) {
 	            if(!video.getFormat().equalsIgnoreCase("gif")) {
 	            	if(video.hasAudio()) {
+	            		try {
+	            			if(video.getAudioFolder().exists()) {
+	            				FileUtils.cleanDirectory(video.getAudioFolder());
+	            			}
+	            		}catch (IOException e) {
+	            			e.printStackTrace();
+	            		}
 	            		String[] audioCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getLibraryFile().getAbsolutePath()),
 	            				"-hide_banner",
 	            				"-loglevel", "error",
 	            				"-i", FilenameUtils.separatorsToUnix(video.getVideoFile().getAbsolutePath()),
+	            				"-ac", "2",
+	            				"-ar", "48000",
+	            				"-c:a", "libvorbis",
 	            				"-f", "ogg",
-	            				"-ab", "192000",
-	            				"-vn", FilenameUtils.separatorsToUnix(new File(video.getAudioFolder(), video.getAudioFolder().listFiles().length + ".ogg").getAbsolutePath())};
+	            				"-vn", FilenameUtils.separatorsToUnix(new File(video.getAudioFolder(), "0.ogg").getAbsolutePath())};
 	                	
 	                    ProcessBuilder audioProcessBuilder = new ProcessBuilder(audioCommand);
 	    	            Bukkit.getLogger().info(Arrays.toString(audioCommand).replace(",", ""));

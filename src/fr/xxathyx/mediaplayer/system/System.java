@@ -6,7 +6,7 @@ import org.apache.commons.lang3.SystemUtils;
 * The System class, is an utility class, as it only contains one
 * method, see {@link #getSystemType()}
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-03 
 */

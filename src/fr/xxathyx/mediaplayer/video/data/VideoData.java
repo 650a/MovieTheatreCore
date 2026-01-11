@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +34,7 @@ import fr.xxathyx.mediaplayer.video.data.thumbnail.Thumbnail;
 * 
 * <p> Can be called from {@link Video#getVideoData()}.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */
@@ -97,16 +98,22 @@ public class VideoData {
 				
 		BufferedImage frame = ImageIO.read(file);
 		
-		Image background = ImageIO.read(Main.class.getResource("resources/background.png"));	
-		Image play = ImageIO.read(Main.class.getResource("resources/play.png"));
+		URL backgroundUrl = Main.class.getResource("resources/background.png");
+		URL playUrl = Main.class.getResource("resources/play.png");
+		BufferedImage background = backgroundUrl == null ? new BufferedImage(frame.getWidth(), frame.getHeight(), BufferedImage.TYPE_INT_ARGB)
+				: ImageIO.read(backgroundUrl);
+		BufferedImage play = playUrl == null ? new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB) : ImageIO.read(playUrl);
 				
 		if(video.isRestricted()) {
-			play = ImageIO.read(Main.class.getResource("resources/restricted.png"));
+			URL restrictedUrl = Main.class.getResource("resources/restricted.png");
+			if(restrictedUrl != null) {
+				play = ImageIO.read(restrictedUrl);
+			}
 			ImageUtil.blur(frame);
 		}
 		
-		BufferedImage bufferedPlay = (BufferedImage) play;
-		BufferedImage bufferedBackground = (BufferedImage) background;
+		BufferedImage bufferedPlay = play;
+		BufferedImage bufferedBackground = background;
 		
 		Image resizedBackground = background.getScaledInstance((int) Math.round(bufferedBackground.getWidth()*((double) frame.getWidth()/bufferedBackground.getWidth())),
 				(int) Math.round(bufferedBackground.getHeight()*((double) frame.getHeight()/bufferedBackground.getHeight())), Image.SCALE_DEFAULT);

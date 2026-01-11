@@ -31,7 +31,7 @@ import fr.xxathyx.mediaplayer.sound.SoundType;
 * The ImageCommands class implements {@link CommandExecutor}, it grants an easy in game
 * access to the plugin features concerning images.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

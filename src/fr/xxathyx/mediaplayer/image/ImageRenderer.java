@@ -23,7 +23,7 @@ import fr.xxathyx.mediaplayer.tasks.TaskAsyncLoadVideo;
 * 
 * <p>The class can be described has an utility one, it have only one constructor.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +27,7 @@ import fr.xxathyx.mediaplayer.video.data.VideoData;
 * The ResourcePack class is only called once, while a video
 * is loading, and within the audio is enabled, see {@link Video#hasAudio()}
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */
@@ -70,9 +71,13 @@ public class ResourcePack {
         }
         
 		try {
-			Image pack = ImageIO.read(Main.class.getResource("resources/audio.png"));
-			BufferedImage bufferedPack = (BufferedImage) pack;
-			
+			URL packUrl = Main.class.getResource("resources/audio.png");
+			BufferedImage bufferedPack;
+			if(packUrl == null) {
+				bufferedPack = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
+			}else {
+				bufferedPack = ImageIO.read(packUrl);
+			}
 			ImageIO.write(bufferedPack, "png", new File(resourcePackFolder, "pack.png"));
 		}catch (IOException e) {
 			e.printStackTrace();

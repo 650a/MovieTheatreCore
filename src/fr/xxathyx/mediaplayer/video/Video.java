@@ -56,7 +56,7 @@ import net.bramp.ffmpeg.probe.FFmpegStream.CodecType;
 * here {@link TaskAsyncLoadConfiguration}. In the YAML configuration-file are
 * related all informations about the video itself.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

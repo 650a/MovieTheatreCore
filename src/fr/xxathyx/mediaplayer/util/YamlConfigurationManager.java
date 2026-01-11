@@ -17,7 +17,7 @@ import fr.xxathyx.mediaplayer.configuration.updater.ConfigurationUpdater;;
 * {@link #edit(File, String, Object)} and {@link #remove(File, String)}, more methods will be added
 * further.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

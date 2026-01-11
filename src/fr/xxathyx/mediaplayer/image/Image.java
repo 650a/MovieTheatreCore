@@ -32,7 +32,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 * <p>In most cases the class is used to be a reliable between a YAML configuration of
 * registered image and their Minecraft features.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

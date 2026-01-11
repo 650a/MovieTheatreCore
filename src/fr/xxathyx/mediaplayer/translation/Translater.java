@@ -3,6 +3,7 @@ package fr.xxathyx.mediaplayer.translation;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Files;
@@ -21,7 +22,7 @@ import fr.xxathyx.mediaplayer.Main;
 * The Translater class is used in {@link Main} in order to extract plugin langage translations.
 * It consists in a single method, see {@link #createTranslationFile(String)}.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */
@@ -48,7 +49,12 @@ public class Translater {
 		
 		if(!file.exists()) {
 			
-			URI uri = Main.class.getResource("translations/" + langage + ".yml").toURI();
+			URL resource = Main.class.getResource("translations/" + langage + ".yml");
+			if(resource == null) {
+				Bukkit.getLogger().warning("[MediaPlayer]: Missing bundled translation " + langage + ".yml, skipping export.");
+				return;
+			}
+			URI uri = resource.toURI();
 
 			if("jar".equals(uri.getScheme())) {
 			    for(FileSystemProvider provider: FileSystemProvider.installedProviders()) {

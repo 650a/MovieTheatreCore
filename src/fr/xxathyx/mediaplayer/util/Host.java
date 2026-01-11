@@ -14,7 +14,7 @@ import com.google.gson.JsonParser;
 * related to the server-ip throught a online-api, in order to get the adequate plugin
 * translation. This class only has one constructor.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */
