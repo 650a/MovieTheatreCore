@@ -20,7 +20,12 @@ Root command: `/mediaplayer` (alias `/mp`).
 * `/mp screen create <name> <w> <h>` - Create a screen in front of the player.
 * `/mp screen delete <name>` - Delete a screen and its files.
 * `/mp screen list` - Open the Screen Manager GUI.
+* `/mp media add <name> <url>` - Download and cache media from an allowed URL.
+* `/mp media remove <name>` - Remove a cached media entry.
+* `/mp media list` - List cached media entries.
 * `/mp play <screen> <source>` - Play a video on a screen.
+* `/mp play <screen> media <name> [--noaudio]` - Play cached media.
+* `/mp play <screen> url <url> [--noaudio]` - Play a direct URL (admin-only).
 * `/mp stop <screen>` - Stop playback on a screen.
 * `/mp pause <screen>` - Pause playback on a screen.
 * `/mp resume <screen>` - Resume playback on a screen.
@@ -35,6 +40,8 @@ Screen list entries open a Screen Control GUI with Play/Stop/Pause/Resume and sc
 * `mediaplayer.screen.manage` - Create/delete screens and set scaling.
 * `mediaplayer.playback` - Play/pause/stop/resume.
 * `mediaplayer.admin` - Reload MediaPlayer.
+* `mediaplayer.media.manage` - List cached media.
+* `mediaplayer.media.admin` - Add/remove URL media and play direct URLs.
 
 ## Configuration keys
 
@@ -43,6 +50,17 @@ Screen list entries open a Screen Control GUI with Play/Stop/Pause/Resume and sc
 * `plugin.visible-screen-frames-support` - Whether item frames are visible.
 * `plugin.glowing-screen-frames-support` - Whether item frames glow.
 * `plugin.delete-frames-on-loaded` - Now ignored to keep frames for scaling.
+* `media.allowed-domains` - URL whitelist (empty = deny all).
+* `media.max-download-mb` - Maximum download size.
+* `media.download-timeout-seconds` - Download timeout per URL.
+* `media.cache-max-gb` - LRU cache size cap.
+* `media.youtube-resolver-path` - Optional yt-dlp resolver path.
+* `audio.enabled` - Enable audio resource pack generation (vanilla clients).
+* `audio.chunk-seconds` - Chunk size for audio slicing.
+* `audio.codec` - Audio codec (vorbis default).
+* `audio.sample-rate` - Audio sample rate (48000 default).
+* `resourcepack.host-url` - External host URL for packs (optional).
+* `resourcepack.sha1` - Last generated pack SHA1.
 
 Screens store per-screen data in `screens/<uuid>/<uuid>.yml`, including:
 
@@ -87,3 +105,5 @@ Notice that those integers represent the real location of the click according to
 ### How to have audio :
 
 In order to have audio, users must simply set their 'Server Resource Pack' to ```Prompt``` or ```Enabled```.
+Vanilla audio playback is **opt-in** and requires `audio.enabled: true` so MediaPlayer can generate resource packs.
+Large videos can bloat resource packs; prefer short clips or host packs externally.

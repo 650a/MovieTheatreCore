@@ -23,6 +23,7 @@
 * Tracked and cancelled async render tasks on stop/end to prevent stale frames from updating after a new session starts.
 * Avoided thumbnail refresh on restart by allowing `PlaybackManager#start` to stop without showing thumbnails.
 * Updated scaling math to use deterministic crop/scale calculations (ceil/floor) and refreshed tests with required sizing cases.
+* Added a media library/cache layer with URL ingestion and LRU eviction plus opt-in audio pack generation for vanilla clients.
 
 ## Thread-Safety & Lifecycle Notes
 

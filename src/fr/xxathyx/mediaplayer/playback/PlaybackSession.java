@@ -23,6 +23,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import fr.xxathyx.mediaplayer.Main;
+import fr.xxathyx.mediaplayer.audio.AudioPlayback;
+import fr.xxathyx.mediaplayer.audio.AudioTrack;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
 import fr.xxathyx.mediaplayer.items.ItemStacks;
 import fr.xxathyx.mediaplayer.map.colors.MapColorPalette;
@@ -43,6 +45,7 @@ public class PlaybackSession {
     private final Screen screen;
     private final Video video;
     private final PlaybackManager manager;
+    private final PlaybackOptions options;
     private final UUID sessionId;
     private final Scheduler scheduler;
     private final FrameScaler scaler = new FrameScaler();
@@ -60,15 +63,18 @@ public class PlaybackSession {
     private long lastFrameNanos = 0L;
     private long frameDurationNanos;
     private PlaybackState state = PlaybackState.IDLE;
+    private AudioPlayback audioPlayback;
 
     private Server resourcePackServer;
+    private AudioTrack audioTrack;
 
-    public PlaybackSession(Main plugin, Screen screen, Video video, PlaybackManager manager) {
+    public PlaybackSession(Main plugin, Screen screen, Video video, PlaybackManager manager, PlaybackOptions options) {
         this.plugin = plugin;
         this.configuration = new Configuration();
         this.screen = screen;
         this.video = video;
         this.manager = manager;
+        this.options = options == null ? PlaybackOptions.defaultOptions() : options;
         this.sessionId = UUID.randomUUID();
         this.frameDurationNanos = (long) (1_000_000_000L / Math.max(1.0, video.getFrameRate()));
         this.scheduler = new Scheduler(plugin);
@@ -98,6 +104,11 @@ public class PlaybackSession {
         state = PlaybackState.PLAYING;
 
         tickTask = scheduler.runSyncRepeating(this::tick, 0L, 1L);
+
+        if (audioTrack != null) {
+            audioPlayback = new AudioPlayback(scheduler, audioTrack, this::getViewerSnapshot, () -> active);
+            audioPlayback.start();
+        }
     }
 
     public void pause() {
@@ -132,7 +143,12 @@ public class PlaybackSession {
             resourcePackServer = null;
         }
 
-        if (video.isAudioEnabled()) {
+        if (audioPlayback != null) {
+            audioPlayback.stop();
+            audioPlayback = null;
+        }
+
+        if (video.isAudioEnabled() && options.allowAudio()) {
             for (UUID uuid : viewers) {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player != null) {
@@ -293,10 +309,14 @@ public class PlaybackSession {
 
     private void handleViewerJoin(Player player) {
         viewers.add(player.getUniqueId());
-        if (video.isAudioEnabled() && resourcePackServer != null) {
-            player.setResourcePack(resourcePackServer.url().replaceAll("%name%", video.getName() + ".zip"));
-            for (int i = 0; i < video.getAudioChannels(); i++) {
-                player.playSound(player.getLocation(), "mediaplayer." + i, 10, 1);
+        if (options.allowAudio()) {
+            if (audioTrack != null) {
+                sendResourcePack(player, audioTrack.getPackUrl(), audioTrack.getPackSha1());
+            } else if (video.isAudioEnabled() && resourcePackServer != null) {
+                sendResourcePack(player, resourcePackServer.url().replaceAll("%name%", video.getName() + ".zip"), new byte[0]);
+                for (int i = 0; i < video.getAudioChannels(); i++) {
+                    player.playSound(player.getLocation(), "mediaplayer." + i, 10, 1);
+                }
             }
         }
     }
@@ -308,6 +328,13 @@ public class PlaybackSession {
     }
 
     private void setupResourcePack() {
+        if (!options.allowAudio()) {
+            return;
+        }
+        if (options.audioTrack() != null) {
+            audioTrack = options.audioTrack();
+            return;
+        }
         if (!video.isAudioEnabled()) {
             return;
         }
@@ -319,6 +346,25 @@ public class PlaybackSession {
         }
         resourcePackServer = new Server(pack);
         resourcePackServer.start();
+    }
+
+    private void sendResourcePack(Player player, String url, byte[] sha1) {
+        if (player == null || url == null || url.isEmpty()) {
+            return;
+        }
+        try {
+            if (sha1 != null && sha1.length > 0) {
+                player.setResourcePack(url, sha1, true);
+            } else {
+                player.setResourcePack(url);
+            }
+        } catch (NoSuchMethodError error) {
+            player.setResourcePack(url);
+        }
+    }
+
+    private Set<UUID> getViewerSnapshot() {
+        return new HashSet<>(viewers);
     }
 
     private List<Entity> getNearbyEntities(Location location, int radius) {

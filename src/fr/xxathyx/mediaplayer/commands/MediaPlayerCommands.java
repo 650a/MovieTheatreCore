@@ -52,14 +52,22 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         ScreenManager screenManager = plugin.getScreenManager();
         PlaybackManager playbackManager = plugin.getPlaybackManager();
 
-        switch (args[0].toLowerCase()) {
+        List<String> filteredArgs = new ArrayList<>(Arrays.asList(args));
+        boolean noAudio = filteredArgs.removeIf(arg -> arg.equalsIgnoreCase("--noaudio"));
+
+        if (filteredArgs.isEmpty()) {
+            sendHelp(sender);
+            return true;
+        }
+
+        switch (filteredArgs.get(0).toLowerCase()) {
             case "screen" -> {
-                if (args.length < 2) {
+                if (filteredArgs.size() < 2) {
                     sendScreenHelp(sender);
                     return true;
                 }
 
-                switch (args[1].toLowerCase()) {
+                switch (filteredArgs.get(1).toLowerCase()) {
                     case "create" -> {
                         if (!sender.hasPermission("mediaplayer.screen.manage")) {
                             sender.sendMessage(configuration.insufficient_permissions());
@@ -69,13 +77,13 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                             sender.sendMessage(ChatColor.RED + "Only players can create screens.");
                             return true;
                         }
-                        if (args.length < 5) {
+                        if (filteredArgs.size() < 5) {
                             sender.sendMessage(ChatColor.RED + "/mp screen create <name> <width> <height>");
                             return true;
                         }
-                        String name = args[2];
-                        int width = parseInt(sender, args[3]);
-                        int height = parseInt(sender, args[4]);
+                        String name = filteredArgs.get(2);
+                        int width = parseInt(sender, filteredArgs.get(3));
+                        int height = parseInt(sender, filteredArgs.get(4));
                         if (width <= 0 || height <= 0) {
                             return true;
                         }
@@ -92,13 +100,13 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
-                        if (args.length < 3) {
+                        if (filteredArgs.size() < 3) {
                             sender.sendMessage(ChatColor.RED + "/mp screen delete <name>");
                             return true;
                         }
-                        Screen screen = resolveScreen(screenManager, args[2]);
+                        Screen screen = resolveScreen(screenManager, filteredArgs.get(2));
                         if (screen == null) {
-                            sender.sendMessage(ChatColor.RED + "Unknown screen: " + args[2]);
+                            sender.sendMessage(ChatColor.RED + "Unknown screen: " + filteredArgs.get(2));
                             return true;
                         }
                         playbackManager.stop(screen, null, true);
@@ -123,26 +131,86 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                     }
                 }
             }
+            case "media" -> {
+                if (filteredArgs.size() < 2) {
+                    sendMediaHelp(sender);
+                    return true;
+                }
+                switch (filteredArgs.get(1).toLowerCase()) {
+                    case "add" -> {
+                        if (!sender.hasPermission("mediaplayer.media.admin")) {
+                            sender.sendMessage(configuration.insufficient_permissions());
+                            return true;
+                        }
+                        if (filteredArgs.size() < 4) {
+                            sender.sendMessage(ChatColor.RED + "/mp media add <name> <url>");
+                            return true;
+                        }
+                        plugin.getMediaManager().addMedia(sender, filteredArgs.get(2), filteredArgs.get(3));
+                        return true;
+                    }
+                    case "remove" -> {
+                        if (!sender.hasPermission("mediaplayer.media.admin")) {
+                            sender.sendMessage(configuration.insufficient_permissions());
+                            return true;
+                        }
+                        if (filteredArgs.size() < 3) {
+                            sender.sendMessage(ChatColor.RED + "/mp media remove <name>");
+                            return true;
+                        }
+                        plugin.getMediaManager().removeMedia(sender, filteredArgs.get(2));
+                        return true;
+                    }
+                    case "list" -> {
+                        if (!sender.hasPermission("mediaplayer.media.manage")) {
+                            sender.sendMessage(configuration.insufficient_permissions());
+                            return true;
+                        }
+                        plugin.getMediaManager().listMedia(sender);
+                        return true;
+                    }
+                    default -> {
+                        sendMediaHelp(sender);
+                        return true;
+                    }
+                }
+            }
             case "play" -> {
                 if (!sender.hasPermission("mediaplayer.playback")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
-                if (args.length < 3) {
-                    sender.sendMessage(ChatColor.RED + "/mp play <screen> <source>");
+                if (filteredArgs.size() < 3) {
+                    sender.sendMessage(ChatColor.RED + "/mp play <screen> <source> [--noaudio]");
                     return true;
                 }
-                Screen screen = resolveScreen(screenManager, args[1]);
+                Screen screen = resolveScreen(screenManager, filteredArgs.get(1));
                 if (screen == null) {
-                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + args[1]);
+                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + filteredArgs.get(1));
                     return true;
                 }
-                Video video = resolveVideo(args[2]);
+                if (filteredArgs.size() >= 4 && filteredArgs.get(2).equalsIgnoreCase("media")) {
+                    if (!sender.hasPermission("mediaplayer.media.manage")) {
+                        sender.sendMessage(configuration.insufficient_permissions());
+                        return true;
+                    }
+                    plugin.getMediaManager().playMedia(sender, screen, filteredArgs.get(3), noAudio);
+                    return true;
+                }
+                if (filteredArgs.size() >= 4 && filteredArgs.get(2).equalsIgnoreCase("url")) {
+                    if (!sender.hasPermission("mediaplayer.media.admin")) {
+                        sender.sendMessage(configuration.insufficient_permissions());
+                        return true;
+                    }
+                    plugin.getMediaManager().playUrl(sender, screen, filteredArgs.get(3), noAudio);
+                    return true;
+                }
+                Video video = resolveVideo(filteredArgs.get(2));
                 if (video == null) {
-                    sender.sendMessage(ChatColor.RED + "Unknown video: " + args[2]);
+                    sender.sendMessage(ChatColor.RED + "Unknown video: " + filteredArgs.get(2));
                     return true;
                 }
-                playbackManager.start(screen, video);
+                playbackManager.start(screen, video, new fr.xxathyx.mediaplayer.playback.PlaybackOptions(!noAudio, null, null));
                 sender.sendMessage(ChatColor.GREEN + "Playing " + video.getName() + " on screen " + screen.getName() + ".");
                 return true;
             }
@@ -151,13 +219,13 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
-                if (args.length < 2) {
+                if (filteredArgs.size() < 2) {
                     sender.sendMessage(ChatColor.RED + "/mp stop <screen>");
                     return true;
                 }
-                Screen screen = resolveScreen(screenManager, args[1]);
+                Screen screen = resolveScreen(screenManager, filteredArgs.get(1));
                 if (screen == null) {
-                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + args[1]);
+                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + filteredArgs.get(1));
                     return true;
                 }
                 playbackManager.stop(screen, null, true);
@@ -169,13 +237,13 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
-                if (args.length < 2) {
+                if (filteredArgs.size() < 2) {
                     sender.sendMessage(ChatColor.RED + "/mp pause <screen>");
                     return true;
                 }
-                Screen screen = resolveScreen(screenManager, args[1]);
+                Screen screen = resolveScreen(screenManager, filteredArgs.get(1));
                 if (screen == null) {
-                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + args[1]);
+                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + filteredArgs.get(1));
                     return true;
                 }
                 playbackManager.pause(screen);
@@ -187,13 +255,13 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
-                if (args.length < 2) {
+                if (filteredArgs.size() < 2) {
                     sender.sendMessage(ChatColor.RED + "/mp resume <screen>");
                     return true;
                 }
-                Screen screen = resolveScreen(screenManager, args[1]);
+                Screen screen = resolveScreen(screenManager, filteredArgs.get(1));
                 if (screen == null) {
-                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + args[1]);
+                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + filteredArgs.get(1));
                     return true;
                 }
                 playbackManager.resume(screen);
@@ -205,18 +273,18 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
-                if (args.length < 3) {
+                if (filteredArgs.size() < 3) {
                     sender.sendMessage(ChatColor.RED + "/mp scale <screen> <fit|fill|stretch>");
                     return true;
                 }
-                Screen screen = resolveScreen(screenManager, args[1]);
+                Screen screen = resolveScreen(screenManager, filteredArgs.get(1));
                 if (screen == null) {
-                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + args[1]);
+                    sender.sendMessage(ChatColor.RED + "Unknown screen: " + filteredArgs.get(1));
                     return true;
                 }
-                ScalingMode mode = parseScalingMode(args[2]);
+                ScalingMode mode = parseScalingMode(filteredArgs.get(2));
                 if (mode == null) {
-                    sender.sendMessage(ChatColor.RED + "Unknown scale mode: " + args[2]);
+                    sender.sendMessage(ChatColor.RED + "Unknown scale mode: " + filteredArgs.get(2));
                     return true;
                 }
                 screen.setScaleMode(mode);
@@ -245,16 +313,25 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            StringUtil.copyPartialMatches(args[0], Arrays.asList("screen", "play", "stop", "pause", "resume", "scale", "reload"), completions);
+            StringUtil.copyPartialMatches(args[0], Arrays.asList("screen", "media", "play", "stop", "pause", "resume", "scale", "reload"), completions);
         } else if (args.length == 2 && args[0].equalsIgnoreCase("screen")) {
             StringUtil.copyPartialMatches(args[1], Arrays.asList("create", "delete", "list"), completions);
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("media")) {
+            StringUtil.copyPartialMatches(args[1], Arrays.asList("add", "remove", "list"), completions);
         } else if (args.length == 2 && Arrays.asList("play", "stop", "pause", "resume", "scale").contains(args[0].toLowerCase())) {
             for (Screen screen : plugin.getScreenManager().getScreens().values()) {
                 completions.add(screen.getName());
             }
             StringUtil.copyPartialMatches(args[1], completions, completions);
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("play")) {
+            StringUtil.copyPartialMatches(args[2], Arrays.asList("media", "url"), completions);
         } else if (args.length == 3 && args[0].equalsIgnoreCase("scale")) {
             StringUtil.copyPartialMatches(args[2], Arrays.asList("fit", "fill", "stretch"), completions);
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("play") && args[2].equalsIgnoreCase("media")) {
+            for (fr.xxathyx.mediaplayer.media.MediaEntry entry : plugin.getMediaLibrary().listEntries()) {
+                completions.add(entry.getName());
+            }
+            StringUtil.copyPartialMatches(args[3], completions, completions);
         }
 
         Collections.sort(completions);
@@ -266,7 +343,12 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mp screen create <name> <w> <h>");
         sender.sendMessage(ChatColor.YELLOW + "/mp screen delete <name>");
         sender.sendMessage(ChatColor.YELLOW + "/mp screen list");
+        sender.sendMessage(ChatColor.YELLOW + "/mp media add <name> <url>");
+        sender.sendMessage(ChatColor.YELLOW + "/mp media remove <name>");
+        sender.sendMessage(ChatColor.YELLOW + "/mp media list");
         sender.sendMessage(ChatColor.YELLOW + "/mp play <screen> <source>");
+        sender.sendMessage(ChatColor.YELLOW + "/mp play <screen> media <name> [--noaudio]");
+        sender.sendMessage(ChatColor.YELLOW + "/mp play <screen> url <url> [--noaudio]");
         sender.sendMessage(ChatColor.YELLOW + "/mp stop <screen>");
         sender.sendMessage(ChatColor.YELLOW + "/mp pause <screen>");
         sender.sendMessage(ChatColor.YELLOW + "/mp resume <screen>");
@@ -279,6 +361,13 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mp screen create <name> <w> <h>");
         sender.sendMessage(ChatColor.YELLOW + "/mp screen delete <name>");
         sender.sendMessage(ChatColor.YELLOW + "/mp screen list");
+    }
+
+    private void sendMediaHelp(CommandSender sender) {
+        sender.sendMessage(ChatColor.GOLD + "Media commands:");
+        sender.sendMessage(ChatColor.YELLOW + "/mp media add <name> <url>");
+        sender.sendMessage(ChatColor.YELLOW + "/mp media remove <name>");
+        sender.sendMessage(ChatColor.YELLOW + "/mp media list");
     }
 
     private int parseInt(CommandSender sender, String value) {

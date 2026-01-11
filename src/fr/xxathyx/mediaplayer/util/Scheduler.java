@@ -34,6 +34,13 @@ public class Scheduler {
         return Bukkit.getScheduler().runTaskTimer(plugin, runnable, delayTicks, periodTicks);
     }
 
+    public BukkitTask runSyncLater(Runnable runnable, long delayTicks) {
+        if (!Bukkit.isPrimaryThread()) {
+            Bukkit.getLogger().warning("[MediaPlayer]: runSyncLater invoked off the main thread.");
+        }
+        return Bukkit.getScheduler().runTaskLater(plugin, runnable, delayTicks);
+    }
+
     public void ensureMainThread(String context) {
         if (!Bukkit.isPrimaryThread()) {
             Bukkit.getLogger().warning("[MediaPlayer]: Bukkit API call off the main thread (" + context + ").");
