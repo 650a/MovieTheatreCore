@@ -77,7 +77,7 @@ import fr.xxathyx.mediaplayer.util.FacingLocation;
 * here {@link TaskSyncLoadScreens}. In the YAML configuration-file are
 * related all informations about the screen itself.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

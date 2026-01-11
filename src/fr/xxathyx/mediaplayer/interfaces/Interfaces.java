@@ -26,7 +26,7 @@ import fr.xxathyx.mediaplayer.video.Video;
 * <p>There is no special constructor, Interfaces class can be instantiated from everywhere granting
 * an access to the interfaces inventories. Technical inventories part is managed by {@link fr.xxathyx.mediaplayer.interfaces.listeners}
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

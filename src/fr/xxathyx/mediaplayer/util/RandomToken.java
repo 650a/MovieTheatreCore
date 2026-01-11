@@ -6,7 +6,7 @@ import java.util.Random;
 * The RandomToken class is used in {@link Configuration} in order to obtain a random
 * key for the free authentification server, its an utility class, see {@link #random(int)}.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

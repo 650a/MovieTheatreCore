@@ -44,7 +44,7 @@ import fr.xxathyx.mediaplayer.util.ProgressBar;
 * opperations, this shouldn't cause problems to be runned asynchronously until video
 * thumbnail creation but again its widely stable.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

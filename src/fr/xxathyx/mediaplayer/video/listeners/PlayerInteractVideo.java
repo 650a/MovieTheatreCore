@@ -36,7 +36,7 @@ import fr.xxathyx.mediaplayer.video.player.VideoPlayer;
 * The PlayerInteractVideo class implements {@link Listener}, it consist
 * of a single event method {@link #interactVideo(PlayerInteractEntityEvent)}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

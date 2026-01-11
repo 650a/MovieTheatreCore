@@ -80,7 +80,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 
 /*
- * Copyright or Xxathyx or Copr. xxathyxlive@gmail.com (2025)
+ * Copyright or hwic (2025)
  *
  * This software is a computer program add the possibility to use various
  * media on minecraft
@@ -116,7 +116,7 @@ import io.netty.channel.ChannelPromise;
 * Represents the MediaPlayer main class of the MediaPlayer plugin,
 * it mainly store informations used accross the plugin.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

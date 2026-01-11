@@ -19,7 +19,7 @@ import fr.xxathyx.mediaplayer.configuration.Configuration;
 * The Updater class, is uses to check for update and update the plugin in the main class,
 * seen {@link Main#onEnable()}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

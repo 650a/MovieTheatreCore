@@ -23,7 +23,7 @@ import org.bukkit.World;
 * The task is runned asynchronously from the main thread for I/O opperations, since it uses re-rendering,
 * loading images using the {@link World} can causes some problems, but again its widely stable.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

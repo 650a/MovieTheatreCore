@@ -23,7 +23,7 @@ import fr.xxathyx.mediaplayer.video.Video;
 * The Content class is used in {@link Screen}, represents a content that can
 * be etheir image or video. The class have only one constructor.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

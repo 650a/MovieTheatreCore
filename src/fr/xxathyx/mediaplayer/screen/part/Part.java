@@ -23,7 +23,7 @@ import fr.xxathyx.mediaplayer.screen.Screen;
 * in regrouping {@link ItemFrame} and {@link Block} into a single
 * object for simplicity. This class has only one constructor.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

@@ -4,12 +4,12 @@ messages:
   video-load-requested: "&aLoad request sent, you will be informed about the
     progress of the load."
   video-load-notice: "&7(The longer a video is, the more it will load)"
-  video-offset-notice: "&7(If you notice that the audio plays for a while after displaying,
-  to define an image and audio offset : /video %video%&7 set offset <seconds>)"
+  video-offset-notice: "&7(If you notice that the audio plays for a while after the video starts,
+    to define an image and audio offset : /video %video%&7 set offset <seconds>)"
   video-offset-start: "&aThis video will start in %offset%&a seconds."
-  video-unloaded: "&aThe video &l%video% &has just been unloaded."
+  video-unloaded: "&aThe video &l%video% &ahas just been unloaded."
   video-downloaded: "&aYou have just downloaded the video &l%video%&a."
-  video-deleted: "&aThe video &l%video% &has been successfully deleted."
+  video-deleted: "&aThe video &l%video% &ahas been successfully deleted."
   video-already-loaded: "&cThe video &l%video% &cis already loaded."
   video-already-loading: "&cThe video &l%video% &cis already being loaded."
   video-not-loaded: "&cVideo &l%video% &cis not loaded, &l/video load %video%."
@@ -20,12 +20,11 @@ messages:
   video-assigned: "&aYou have just assigned the video &l%video% &a to this screen, &l/video
     start &ato play it."
   video-not-enought-space: "&cYou don't have enough space to load &l%video%&c."
-  video-description-updated: "&aYou have just updated the description of &l%video%&c
-    &ainto %description%&a."
+  video-description-updated: "&aYou have just updated the description of &l%video%&a
+    into %description%&a."
   video-framerate-updated: "&aYou have just updated the refresh time
     of &l%video% &ato &l%framerate%&a."
-  video-speed-updated: "&aYou have just updated the playback speed of &l%video%&a to &l%speed%&a.
-    &ato &l%speed%x&a."
+  video-speed-updated: "&aYou have just updated the playback speed of &l%video%&a to &l%speed%x&a."
   video-volume-updated: "&aYou have just updated the volume of &l%video% &ato
     &l%volume%x&a."
   video-audio-offset-updated: "&aYou have just updated the audio offset of &l%video% &ato
@@ -42,11 +41,10 @@ messages:
   video-loop-disabled: "&aYou have just disabled the repeat of &l%video%&a."
   video-real-time-rendering-enabled: "&aYou have just enabled real time rendering
     of &l%video%&a."
-  video-real-time-rendering-disabled: "&aYou have just disabled real-time rendering of &l%video%&a.
-    rendering of &l%video%&a."
+  video-real-time-rendering-disabled: "&aYou have just disabled real-time rendering of &l%video%&a."
   video-skip-duplicated-frames-enabled: "&aYou have just enabled skipping of duplicated frames
     of &l%video%&a."
-  video-skip-duplicated-frames-disabled: "&aYou have just deactivated the frame
+  video-skip-duplicated-frames-disabled: "&aYou have just disabled skipping of duplicated frames
     of &l%video%&a."
   video-show-informations-enabled: "&aYou have enabled the display of information
     of &l%video%&a."
@@ -54,12 +52,11 @@ messages:
     of &l%video%&a."
   video-show-fps-enabled: "&aYou have just enabled the display of the number of frames
     per second of &l%video%&a."
-  video-show-fps-disabled: "&aYou have just disabled the display of the frame rate of &l%video%&a.
-    per second of &l%video%&a."
+  video-show-fps-disabled: "&aYou have just disabled the display of the frame rate per second
+    of &l%video%&a."
   video-run-on-startup-enabled: "&aYou have just enabled the run-on-startup
     of &l%video%&a."
-  video-run-on-startup-disabled: "&aYou have just deactivated the startup of &l%video%&a.
-    of &l%video%&a."
+  video-run-on-startup-disabled: "&aYou have just deactivated the startup of &l%video%&a."
   video-processing-frames-starting: "&7The extraction of frames from &l%video% &7has just started. (1/3)"
   video-processing-frames-finished: "&7The extraction of the &l%video% &7frames has
     finished."
@@ -80,7 +77,7 @@ messages:
   video-instance-stopped: "&aYou just stopped the video &l%video%&a."
   video-instance-pause: "&aYou have just paused the video &l%video%&a."
   video-instance-resume: "&aYou have just restarted the video &l%video%&a."
-  video-instance-not-on-screen: "&This video is not assigned to any screen, assign it
+  video-instance-not-on-screen: "&cThis video is not assigned to any screen, assign it
     with the /screen create."
   videos-reload-requested: "&aReload request for videos received."
   screens-reload-requested: "&aRequest to reload screens received."
@@ -96,8 +93,7 @@ messages:
   screen-deleted: "&aYou have just deleted the screen: &l%screen%&a."
   screen-teleport: "&aYou have just teleported to the screen: &l%screen%&a."
   screen-invalid-index: "&cThe index screen &l%index% &cis not found."
-  screen-cannot-create: "&cCannot create a screen in this location, blocks are probably in the way.
-    blocks are probably blocking the space."
+  screen-cannot-create: "&cCannot create a screen in this location, blocks are probably in the way."
   screen-not-ready: "&c&l%player% &chasn't downloaded all the necessary addons yet."
   screen-everyone-ready: "&aAll users are ready, you can start the
     video: &a&l/video start&a."
@@ -113,12 +109,12 @@ messages:
     of the url."
   image-invalid-screen: "&cThe selected screen does not contain a sufficient number
     of frames."
-  image-already-rendered: "&cThe rendering of the &l%image% &has already been done, do
+  image-already-rendered: "&cThe rendering of the &l%image% &ahas already been done, do
     /image give &l%image%&c."
   item:
     previous-page:
       name: "&4&lPrevious-page"
-      lore: "&Click here to go to the previous page."
+      lore: "&cClick here to go to the previous page."
     refresh-page:
       name: "&6&lRefresh"
       lore: "&eClick here to refresh the page."
@@ -142,18 +138,18 @@ messages:
       lore: "&dClick here to teleport to the screen."
     delete:
       name: "&4&lDelete"
-      lore-1: "&Click here to delete the video."
+      lore-1: "&cClick here to delete the video."
       lore-2: "&c&l[!] No going back once deleted."
     remove:
       name: "&4&lDelete"
-      lore-1: "&Click here to delete the screen."
+      lore-1: "&cClick here to delete the screen."
       lore-2: "&c&l[!] No going back once deleted."
     poster:
       lore-1: "&eRight-click with the card on the corner frame"
       lore-2: "&eTop left of screen to spread image."
       lore-3: "&eTo remove the image, crouch down then click-"
-      lore-4: "&right on the top left corner of the screen."
-  libraries-not-installed: The libraries needed for the plugin to work properly are not
+      lore-4: "&eright on the top left corner of the screen."
+  libraries-not-installed: The libraries needed for the plugin to work properly are
     not installed, please wait for the installation to be completed,
     then try again later.
   age-limit-warning: "&c[!] Contains explicit content."

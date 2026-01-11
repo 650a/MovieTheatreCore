@@ -4,7 +4,7 @@ package fr.xxathyx.mediaplayer.system;
 * The NotificationType enum, is used in {@link System} system for {@link System#getSystemType()},
 * has only one method, see {@link SystemType#toString()}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

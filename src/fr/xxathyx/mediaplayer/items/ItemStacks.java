@@ -26,7 +26,7 @@ import fr.xxathyx.mediaplayer.interfaces.Interfaces;
 * <p>There is no special constructor, ItemStacks class can be instantiated from everywhere
 * granting an access to the ItemStacks tools through getters.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

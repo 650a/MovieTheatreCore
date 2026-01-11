@@ -6,7 +6,7 @@ import fr.xxathyx.mediaplayer.Main;
 * The MediaPlayerAPI class, is used as a pass-throught to use the
 * plugin and its functionalities, as it is build in api style.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-03 
 */

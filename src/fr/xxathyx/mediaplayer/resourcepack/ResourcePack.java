@@ -27,7 +27,7 @@ import fr.xxathyx.mediaplayer.video.data.VideoData;
 * The ResourcePack class is only called once, while a video
 * is loading, and within the audio is enabled, see {@link Video#hasAudio()}
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

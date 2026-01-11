@@ -15,7 +15,7 @@ import fr.xxathyx.mediaplayer.video.data.VideoData;
 * For the moment it only contains two static method, see {@link #blur(BufferedImage)},
 * and {@link #getResemblance(BufferedImage, BufferedImage)} more methods will be added further.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

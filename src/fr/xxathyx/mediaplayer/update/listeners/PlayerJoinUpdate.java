@@ -19,7 +19,7 @@ import fr.xxathyx.mediaplayer.update.Updater;
 * The PlayerJoinUpdate class implements {@link Listener}, it consist
 * of a single event method {@link #onJoin(PlayerJoinEvent)}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

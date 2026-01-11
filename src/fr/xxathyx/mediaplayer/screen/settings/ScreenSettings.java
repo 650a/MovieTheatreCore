@@ -6,7 +6,7 @@ import fr.xxathyx.mediaplayer.video.Video;
 * The ScreenSettings class is used in {@link Screen} in order to propose adequate settings
 * to a screen accord to a {@link Video}. This class only has one constructor.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

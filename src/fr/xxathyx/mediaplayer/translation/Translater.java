@@ -22,7 +22,7 @@ import fr.xxathyx.mediaplayer.Main;
 * The Translater class is used in {@link Main} in order to extract plugin langage translations.
 * It consists in a single method, see {@link #createTranslationFile(String)}.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

@@ -35,7 +35,7 @@ import fr.xxathyx.mediaplayer.video.Video;
 * The ScreenCommands class implements {@link CommandExecutor}, it grants an easy access
 * to the plugin features concerning screens.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

@@ -22,7 +22,7 @@ import fr.xxathyx.mediaplayer.tasks.TaskAsyncLoadVideo;
 * 
 * <p>A cache file will always lenght 16384 bytes.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

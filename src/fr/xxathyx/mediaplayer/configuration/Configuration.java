@@ -20,7 +20,7 @@ import fr.xxathyx.mediaplayer.util.Host;
 *<p>Configuration class can be define anyware as basic constructor, wich then grant acces
 * to all the getter methods.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0
 * @since   2021-08-23 
 */

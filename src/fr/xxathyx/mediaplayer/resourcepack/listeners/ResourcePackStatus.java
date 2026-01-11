@@ -12,7 +12,7 @@ import fr.xxathyx.mediaplayer.Main;
 * The ResourcePackStatus class implements {@link Listener}, it consist
 * of a single event method {@link #onResourcepackStatusEvent(PlayerResourcePackStatusEvent)}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

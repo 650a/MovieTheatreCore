@@ -16,7 +16,7 @@ import fr.xxathyx.mediaplayer.video.audio.Audio;
 * <p> <strong>Note: </strong>The class methods aren't used to play video audios,
 * see {@link Audio}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

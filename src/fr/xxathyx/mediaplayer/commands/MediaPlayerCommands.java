@@ -13,7 +13,7 @@ import fr.xxathyx.mediaplayer.configuration.Configuration;
 * The MediaPlayerCommands class implements {@link CommandExecutor}, it grants informations
 * about the running plugin.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */
