@@ -16,13 +16,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.craftbukkit.v1_20_R4.entity.CraftPlayer;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -225,23 +225,28 @@ public class Main extends JavaPlugin implements Listener {
 		updateFolder.mkdir();
 		
 		try {
-			URI uri = Main.class.getResource("translations/" + langage + ".yml").toURI();
-			if("jar".equals(uri.getScheme())) {
-			    for(FileSystemProvider provider: FileSystemProvider.installedProviders()) {
-			        if(provider.getScheme().equalsIgnoreCase("jar")) {
-			            try {
-			                provider.getFileSystem(uri);
-			            }catch (FileSystemNotFoundException e) {
-			                provider.newFileSystem(uri, Collections.emptyMap());
-			            }
-			        }
-			    }
+			URL translationUrl = Main.class.getResource("translations/" + langage + ".yml");
+			if(translationUrl == null) {
+				Bukkit.getLogger().warning("[MediaPlayer]: Missing bundled translation " + langage + ".yml, skipping updater translation sync.");
+			}else {
+				URI uri = translationUrl.toURI();
+				if("jar".equals(uri.getScheme())) {
+				    for(FileSystemProvider provider: FileSystemProvider.installedProviders()) {
+				        if(provider.getScheme().equalsIgnoreCase("jar")) {
+				            try {
+				                provider.getFileSystem(uri);
+				            }catch (FileSystemNotFoundException e) {
+				                provider.newFileSystem(uri, Collections.emptyMap());
+				            }
+				        }
+				    }
+				}
+				Path source = Paths.get(uri);
+				
+				Files.copy(source, updateTranslation.toPath(), StandardCopyOption.REPLACE_EXISTING);
+				
+				new ConfigurationUpdater(new File(getDataFolder() + "/translations/", langage + ".yml"), updateTranslation, "messages").update();
 			}
-			Path source = Paths.get(uri);
-			
-			Files.copy(source, updateTranslation.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			
-			new ConfigurationUpdater(new File(getDataFolder() + "/translations/", langage + ".yml"), updateTranslation, "messages").update();
 			
 		}catch (URISyntaxException | IOException | InvalidConfigurationException e) {
 	        Bukkit.getLogger().warning("[MediaPlayer]: If you are reloading the plugin skip this message otherwise failed to verify configurations.");
@@ -356,10 +361,13 @@ public class Main extends JavaPlugin implements Listener {
     public void onLeave(PlayerQuitEvent event){
         removePlayer(event.getPlayer());
     }
-    private void removePlayer(Player player) {
-        Channel channel = ((CraftPlayer) player).getHandle().b.a.m;
+	private void removePlayer(Player player) {
+        Channel channel = getPlayerChannel(player);
+        if(channel == null) return;
         channel.eventLoop().submit(() -> {
-            channel.pipeline().remove(player.getName());
+            if(channel.pipeline().get(player.getName()) != null) {
+                channel.pipeline().remove(player.getName());
+            }
             return null;
         });
     }
@@ -380,8 +388,43 @@ public class Main extends JavaPlugin implements Listener {
         		super.write(channelHandlerContext, packet, channelPromise);
             }
         };
-        ChannelPipeline pipeline = ((CraftPlayer) player).getHandle().b.a.m.pipeline();
-        pipeline.addBefore("packet_handler", player.getName(), channelDuplexHandler);
+        Channel channel = getPlayerChannel(player);
+        if(channel == null) return;
+        ChannelPipeline pipeline = channel.pipeline();
+        if(pipeline.get(player.getName()) == null && pipeline.get("packet_handler") != null) {
+            pipeline.addBefore("packet_handler", player.getName(), channelDuplexHandler);
+        }
+    }
+
+    private Channel getPlayerChannel(Player player) {
+        try {
+            Object handle = player.getClass().getMethod("getHandle").invoke(player);
+            return findChannel(handle, new java.util.HashSet<>(), 4);
+        }catch (ReflectiveOperationException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private Channel findChannel(Object value, Set<Object> visited, int depth) {
+        if(value == null || depth < 0 || visited.contains(value)) return null;
+        if(value instanceof Channel) return (Channel) value;
+        visited.add(value);
+        Class<?> type = value.getClass();
+        while(type != null && !type.equals(Object.class)) {
+            Field[] fields = type.getDeclaredFields();
+            for(Field field : fields) {
+                try {
+                    field.setAccessible(true);
+                    Object next = field.get(value);
+                    Channel channel = findChannel(next, visited, depth - 1);
+                    if(channel != null) return channel;
+                }catch (IllegalAccessException ignored) {
+                }
+            }
+            type = type.getSuperclass();
+        }
+        return null;
     }
 	
     /**
