@@ -1,7 +1,8 @@
-name: Build JAR (Paper 1.20.4)
+name: Build JAR
 
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -12,155 +13,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+          cache: maven
 
-      - name: Install tools
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y jq maven
-
-      # --- 1) Download latest Paper server jar for 1.20.4 (contains CraftBukkit + NMS packages) ---
-      - name: Download Paper server jar
-        shell: bash
-        run: |
-          set -euo pipefail
-          MC_VERSION="1.20.4"
-
-          BUILDS_JSON="$(curl -s "https://api.papermc.io/v2/projects/paper/versions/${MC_VERSION}/builds")"
-          LATEST_BUILD="$(echo "$BUILDS_JSON" | jq -r '.builds[-1].build')"
-          JAR_NAME="$(echo "$BUILDS_JSON" | jq -r '.builds[-1].downloads.application.name')"
-
-          echo "Latest build: $LATEST_BUILD"
-          echo "Jar name: $JAR_NAME"
-
-          mkdir -p build/deps
-          curl -L -o "build/deps/paper.jar" \
-            "https://api.papermc.io/v2/projects/paper/versions/${MC_VERSION}/builds/${LATEST_BUILD}/downloads/${JAR_NAME}"
-
-          ls -lah build/deps/paper.jar
-
-      # --- 2) Download required libraries (Maven Central) ---
-      - name: Download library deps
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Maven Central deps
-          mvn -q -Dartifact=commons-io:commons-io:2.15.1 dependency:get
-          mvn -q -Dartifact=commons-lang:commons-lang:2.6 dependency:get
-          mvn -q -Dartifact=org.apache.commons:commons-lang3:3.14.0 dependency:get
-          mvn -q -Dartifact=com.google.code.gson:gson:2.10.1 dependency:get
-          mvn -q -Dartifact=com.google.guava:guava:33.0.0-jre dependency:get
-          mvn -q -Dartifact=net.bramp.ffmpeg:ffmpeg:0.8.0 dependency:get
-          mvn -q -Dartifact=io.netty:netty-all:4.1.107.Final dependency:get
-          mvn -q -Dartifact=net.md-5:bungeecord-chat:1.20-R0.2 dependency:get
-
-          # Resolve jar paths
-          JARS=()
-          JARS+=("$(ls -1 ~/.m2/repository/commons-io/commons-io/*/commons-io-*.jar | tail -n 1)")
-          JARS+=("$(ls -1 ~/.m2/repository/commons-lang/commons-lang/*/commons-lang-*.jar | tail -n 1)")
-          JARS+=("$(ls -1 ~/.m2/repository/org/apache/commons/commons-lang3/*/commons-lang3-*.jar | tail -n 1)")
-          JARS+=("$(ls -1 ~/.m2/repository/com/google/code/gson/gson/*/gson-*.jar | tail -n 1)")
-          JARS+=("$(ls -1 ~/.m2/repository/com/google/guava/guava/*/guava-*.jar | tail -n 1)")
-          JARS+=("$(ls -1 ~/.m2/repository/net/bramp/ffmpeg/ffmpeg/*/ffmpeg-*.jar | tail -n 1)")
-          JARS+=("$(ls -1 ~/.m2/repository/io/netty/netty-all/*/netty-all-*.jar | tail -n 1)")
-          JARS+=("$(ls -1 ~/.m2/repository/net/md-5/bungeecord-chat/*/bungeecord-chat-*.jar | tail -n 1)")
-
-          # Copy them into build/deps for easier classpath
-          for j in "${JARS[@]}"; do
-            echo "Copying $j"
-            cp "$j" build/deps/
-          done
-
-          ls -lah build/deps
-
-      # --- 3) Download BKCommonLib (not reliably on Maven Central; grab from Modrinth) ---
-      - name: Download BKCommonLib jar (Modrinth)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Search Modrinth for the project id
-          SEARCH_JSON="$(curl -s "https://api.modrinth.com/v2/search?query=bkcommonlib&limit=5&facets=[[\"project_type:plugin\"]]")"
-          PROJECT_ID="$(echo "$SEARCH_JSON" | jq -r '.hits[0].project_id')"
-
-          if [ "$PROJECT_ID" = "null" ] || [ -z "$PROJECT_ID" ]; then
-            echo "Could not find BKCommonLib on Modrinth search."
-            exit 1
-          fi
-
-          # Get latest version file url
-          VERSIONS_JSON="$(curl -s "https://api.modrinth.com/v2/project/${PROJECT_ID}/version")"
-          FILE_URL="$(echo "$VERSIONS_JSON" | jq -r '.[0].files[0].url')"
-
-          if [ "$FILE_URL" = "null" ] || [ -z "$FILE_URL" ]; then
-            echo "Could not get BKCommonLib file url."
-            exit 1
-          fi
-
-          echo "Downloading BKCommonLib from: $FILE_URL"
-          curl -L -o build/deps/BKCommonLib.jar "$FILE_URL"
-          ls -lah build/deps/BKCommonLib.jar
-
-      # --- 4) Compile ONLY v1_20_R4-specific sources (otherwise v1_21_* will break) ---
-      - name: Compile (target v1_20_R4 only)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          test -f plugin.yml
-
-          mkdir -p build/classes
-
-          # Collect sources
-          mapfile -t ALL_SOURCES < <(find src com org net dev -type f -name "*.java" 2>/dev/null || true)
-
-          # Filter out versioned sources that are NOT v1_20_R4
-          # Keep:
-          #   - all non-versioned code
-          #   - ONLY files whose name contains v1_20_R4 in versioned util folders
-          SOURCES=()
-          for f in "${ALL_SOURCES[@]}"; do
-            if echo "$f" | grep -Eq '/(actionbar|audio/util|map/util)/v1_'; then
-              if echo "$f" | grep -q 'v1_20_R4'; then
-                SOURCES+=("$f")
-              fi
-            else
-              SOURCES+=("$f")
-            fi
-          done
-
-          echo "Total sources found: ${#ALL_SOURCES[@]}"
-          echo "Sources after filtering: ${#SOURCES[@]}"
-
-          # Build classpath (Paper server jar + deps)
-          CP="build/deps/paper.jar"
-          for j in build/deps/*.jar; do
-            CP="${CP}:${j}"
-          done
-
-          # Compile; target Java 8 bytecode for runtime flexibility (change to 17 if you want)
-          javac --release 8 -encoding UTF-8 \
-            -cp "$CP" \
-            -d build/classes \
-            "${SOURCES[@]}"
-
-          cp plugin.yml build/classes/plugin.yml
-
-      - name: Package JAR
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build/out
-          jar --create --file build/out/MediaPlayer.jar -C build/classes .
-          ls -lah build/out/MediaPlayer.jar
+      - name: Build with Maven
+        run: mvn -B -e -DskipTests package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MediaPlayer-1.20.4
-          path: build/out/MediaPlayer.jar
+          name: MediaPlayer-JAR
+          path: target/*.jar
