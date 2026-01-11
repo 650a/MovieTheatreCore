@@ -140,18 +140,12 @@ public class ImageRenderer extends MapRenderer {
         int originalWidth = bufferedImage.getWidth();
         int originalHeight = bufferedImage.getHeight();
 
-        columns = ((int) Math.ceil(originalWidth / 128));
-        lines = ((int) Math.ceil(originalHeight / 128));
+        columns = (int) Math.ceil(originalWidth / 128.0);
+        lines = (int) Math.ceil(originalHeight / 128.0);
 
         remainderX = (originalWidth % 128);
         remainderY = (originalHeight % 128);
-        
-        if(remainderX > 0) {
-            columns += 1;
-        }
-        if(remainderY > 0) {
-            lines += 1;
-        }
+
         cutImagesCount = (columns*lines);
     }
 	

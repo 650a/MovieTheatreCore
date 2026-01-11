@@ -22,6 +22,10 @@
   </properties>
 
   <repositories>
+    <repository>
+      <id>spigotmc-repo</id>
+      <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+    </repository>
     <!-- BKCommonLib repo (needed so its transitive deps like RegionChangeTracker can resolve) -->
     <repository>
       <id>mg-dev</id>
@@ -30,20 +34,25 @@
   </repositories>
 
   <dependencies>
-    <!-- This is what provides CraftBukkit (org.bukkit.craftbukkit.*), NMS (net.minecraft.*), and Netty (io.netty.*) at compile time -->
-    <dependency>
-      <groupId>org.spigotmc</groupId>
-      <artifactId>spigot</artifactId>
-      <version>${spigot.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- If your plugin uses Bukkit API types explicitly, this is nice to keep too (still provided at runtime) -->
+    <!-- Bukkit/Spigot API for compile-time -->
     <dependency>
       <groupId>org.spigotmc</groupId>
       <artifactId>spigot-api</artifactId>
       <version>${spigot.version}</version>
       <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-all</artifactId>
+      <version>4.1.109.Final</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1.1</version>
     </dependency>
 
     <!-- Optional (only if your code imports it). Keep provided so it’s not shaded into your jar. -->
@@ -53,6 +62,13 @@
       <version>${bkcommonlib.version}</version>
       <scope>provided</scope>
       <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.10.2</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -78,6 +94,9 @@
         <configuration>
           <release>${maven.compiler.release}</release>
           <encoding>${project.build.sourceEncoding}</encoding>
+          <excludes>
+            <exclude>test/**</exclude>
+          </excludes>
         </configuration>
       </plugin>
 
@@ -93,6 +112,12 @@
             </manifest>
           </archive>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
       </plugin>
     </plugins>
   </build>

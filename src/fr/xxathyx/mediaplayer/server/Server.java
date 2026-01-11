@@ -26,6 +26,7 @@ public class Server {
     private String arg = "";
     private boolean secure = false;
     private String externalUrl = null;
+    private HttpServer server;
     	
     public Server(File file) {
     	Server.file=file;
@@ -69,7 +70,7 @@ public class Server {
 	    	}
     	
         try {
-        	HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+        	server = HttpServer.create(new InetSocketAddress(port), 0);
             server.createContext("/", new FileHandler());
             server.setExecutor(null);
             server.start();
@@ -109,6 +110,13 @@ public class Server {
     public String url() {
     	if(externalUrl != null) return externalUrl;
     	return "http" + (secure ? "s" : "") +"://"+ip+":"+port+"/"+arg;
+    }
+
+    public void stop() {
+        if (server != null) {
+            server.stop(0);
+            server = null;
+        }
     }
     
 	public static int getRandomNumber(int min, int max) {

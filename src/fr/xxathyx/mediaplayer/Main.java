@@ -41,27 +41,19 @@ import fr.xxathyx.mediaplayer.configuration.updater.ConfigurationUpdater;
 import fr.xxathyx.mediaplayer.ffmpeg.Ffmpeg;
 import fr.xxathyx.mediaplayer.ffmpeg.Ffprobe;
 import fr.xxathyx.mediaplayer.group.Group;
-import fr.xxathyx.mediaplayer.image.commands.ImageCommands;
-import fr.xxathyx.mediaplayer.image.listeners.PlayerInteractImage;
-import fr.xxathyx.mediaplayer.interfaces.Interfaces;
-import fr.xxathyx.mediaplayer.interfaces.listeners.InventoryClickContents;
-import fr.xxathyx.mediaplayer.interfaces.listeners.InventoryClickPanel;
-import fr.xxathyx.mediaplayer.interfaces.listeners.InventoryClickScreens;
-import fr.xxathyx.mediaplayer.interfaces.listeners.InventoryClickVideos;
-import fr.xxathyx.mediaplayer.interfaces.listeners.InventoryClosePanel;
+import fr.xxathyx.mediaplayer.gui.GuiListener;
+import fr.xxathyx.mediaplayer.playback.PlaybackManager;
 import fr.xxathyx.mediaplayer.map.colors.MCSDGenBukkit;
 import fr.xxathyx.mediaplayer.map.colors.MapColorSpaceData;
 import fr.xxathyx.mediaplayer.map.util.MapUtilVersion;
 import fr.xxathyx.mediaplayer.resourcepack.listeners.ResourcePackStatus;
 import fr.xxathyx.mediaplayer.screen.Screen;
-import fr.xxathyx.mediaplayer.screen.commands.ScreenCommands;
+import fr.xxathyx.mediaplayer.screen.ScreenManager;
 import fr.xxathyx.mediaplayer.screen.listeners.PlayerBreakScreen;
 import fr.xxathyx.mediaplayer.screen.listeners.PlayerDamageScreen;
 import fr.xxathyx.mediaplayer.screen.listeners.PlayerDisconnectScreen;
-import fr.xxathyx.mediaplayer.screen.listeners.PlayerInteractScreen;
 import fr.xxathyx.mediaplayer.tasks.TaskAsyncLoadConfigurations;
 import fr.xxathyx.mediaplayer.tasks.TaskAsyncLoadImages;
-import fr.xxathyx.mediaplayer.tasks.TaskSyncLoadScreens;
 import fr.xxathyx.mediaplayer.translation.Translater;
 import fr.xxathyx.mediaplayer.update.Updater;
 import fr.xxathyx.mediaplayer.util.ActionBar;
@@ -69,9 +61,7 @@ import fr.xxathyx.mediaplayer.util.AudioUtil;
 import fr.xxathyx.mediaplayer.util.MapUtil;
 import fr.xxathyx.mediaplayer.util.ServerVersion;
 import fr.xxathyx.mediaplayer.video.Video;
-import fr.xxathyx.mediaplayer.video.commands.VideoCommands;
 import fr.xxathyx.mediaplayer.video.instance.VideoInstance;
-import fr.xxathyx.mediaplayer.video.listeners.PlayerInteractVideo;
 import fr.xxathyx.mediaplayer.video.player.VideoPlayer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
@@ -137,6 +127,9 @@ public class Main extends JavaPlugin implements Listener {
 	
 	private final Map<UUID, VideoPlayer> videoPlayers = new HashMap<>();
 	private final Map<UUID, Screen> playersScreens = new HashMap<>();
+
+	private ScreenManager screenManager;
+	private PlaybackManager playbackManager;
 	
 	private final ArrayList<Group> groups = new ArrayList<>();
 	
@@ -277,37 +270,21 @@ public class Main extends JavaPlugin implements Listener {
 	        Bukkit.getLogger().warning("[MediaPlayer]: The server running version is old and isn't well supported, you may encounter future issues while playing videos.");
         }
         
-        getCommand("mediaplayer").setExecutor(new MediaPlayerCommands());
-        
-        getCommand("video").setExecutor(new VideoCommands());
-        getCommand("video").setTabCompleter(new VideoCommands());
-        getCommand("videos").setExecutor(new VideoCommands());   
-        
-        getCommand("screen").setExecutor(new ScreenCommands());
-        getCommand("screen").setTabCompleter(new ScreenCommands());
-        getCommand("screens").setExecutor(new ScreenCommands());
-        
-        getCommand("image").setExecutor(new ImageCommands());
-        getCommand("image").setTabCompleter(new ImageCommands());
-        getCommand("images").setExecutor(new ImageCommands());
-        
-		Bukkit.getServer().getPluginManager().registerEvents(new InventoryClickVideos(), this);
-		Bukkit.getServer().getPluginManager().registerEvents(new InventoryClickScreens(), this);
-		Bukkit.getServer().getPluginManager().registerEvents(new InventoryClickContents(), this);
-		Bukkit.getServer().getPluginManager().registerEvents(new InventoryClickPanel(), this);
-		
-		Bukkit.getServer().getPluginManager().registerEvents(new InventoryClosePanel(), this);
-		
-		Bukkit.getServer().getPluginManager().registerEvents(new PlayerInteractImage(), this);
-		Bukkit.getServer().getPluginManager().registerEvents(new PlayerInteractVideo(), this);
+        screenManager = new ScreenManager(this);
+        playbackManager = new PlaybackManager(this, screenManager);
+
+        MediaPlayerCommands mediaPlayerCommands = new MediaPlayerCommands(this);
+        getCommand("mediaplayer").setExecutor(mediaPlayerCommands);
+        getCommand("mediaplayer").setTabCompleter(mediaPlayerCommands);
+
+		Bukkit.getServer().getPluginManager().registerEvents(new GuiListener(this), this);
 		Bukkit.getServer().getPluginManager().registerEvents(new PlayerBreakScreen(), this);
-		Bukkit.getServer().getPluginManager().registerEvents(new PlayerInteractScreen(), this);
 		Bukkit.getServer().getPluginManager().registerEvents(new PlayerDamageScreen(), this);
 		Bukkit.getServer().getPluginManager().registerEvents(new PlayerDisconnectScreen(), this);
 				
 		if(!old) Bukkit.getServer().getPluginManager().registerEvents(new ResourcePackStatus(), this);
 				
-		new TaskSyncLoadScreens().runTask(this);
+		screenManager.loadAll();
 		new TaskAsyncLoadConfigurations().runTaskAsynchronously(this);
 		if(legacy) new TaskAsyncLoadImages().runTaskAsynchronously(this);
 		if(!legacy) new TaskAsyncLoadImages().runTask(this);
@@ -329,6 +306,10 @@ public class Main extends JavaPlugin implements Listener {
 				
 		for(Player player : Bukkit.getOnlinePlayers()) {
 			player.closeInventory();
+		}
+
+		if(playbackManager != null) {
+			playbackManager.stopAll();
 		}
 		
 		for(Screen screen : registeredScreens) {
@@ -579,6 +560,14 @@ public class Main extends JavaPlugin implements Listener {
 	
 	public ArrayList<Screen> getRegisteredScreens() {
 		return registeredScreens;
+	}
+
+	public ScreenManager getScreenManager() {
+		return screenManager;
+	}
+
+	public PlaybackManager getPlaybackManager() {
+		return playbackManager;
 	}
 	
     /**

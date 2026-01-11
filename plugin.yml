@@ -8,30 +8,17 @@ api-version: 1.13
 
 commands:
   mediaplayer:
-    description: "The plugin informative command, leading to rest of it."
+    description: "MediaPlayer root command."
+    aliases: [mp]
     permission: mediaplayer.command
-  video:
-    description: "Allows you to interact with the available videos."
-    aliases: [vid]
-    permission: mediaplayer.command.video
-  videos:
-    description: "Allows you to interact with the videos available from a graphical interface."
-    aliases: [vids]
-    permission: mediaplayer.command.videos
-  screen:
-    description: "Allows you to interact with the screens of the videos."
-    permission: mediaplayer.command.screen
-  screens:
-    description: "Displays the list of saved screens."
-    permission: mediaplayer.command.screens
-  image:
-    description: "Allows management and rendering of images."
-    aliases: [img]
-    permission: mediaplayer.command.image
-  images:
-    description: "Displays the list of saved images."
-    aliases: [imgs]
-    permission: mediaplayer.command.images
 permissions:
   mediaplayer.permission.admin:
     description: Provides access to various in-game admin tools.
+  mediaplayer.command:
+    description: Access to /mediaplayer.
+  mediaplayer.screen.manage:
+    description: Create/delete screens and set scaling.
+  mediaplayer.playback:
+    description: Control playback on screens.
+  mediaplayer.admin:
+    description: Reload MediaPlayer.

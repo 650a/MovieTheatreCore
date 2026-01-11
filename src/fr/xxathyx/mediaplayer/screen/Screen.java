@@ -64,6 +64,7 @@ import fr.xxathyx.mediaplayer.video.data.VideoData;
 import fr.xxathyx.mediaplayer.video.instance.VideoInstance;
 import fr.xxathyx.mediaplayer.tasks.TaskSyncLoadScreens;
 import fr.xxathyx.mediaplayer.util.FacingLocation;
+import fr.xxathyx.mediaplayer.render.ScalingMode;
 
 /** 
 * The Screen class is essential in the good functioning of things, its used
@@ -224,6 +225,7 @@ public class Screen {
 		fileconfiguration.set("screen.video.name", "none");
 		fileconfiguration.set("screen.video.instance", "none");
 		fileconfiguration.set("screen.last-frame", 0);
+		fileconfiguration.set("screen.scale-mode", ScalingMode.FIT.name());
 		fileconfiguration.set("screen.contents-folder", new File(configuration.getScreensFolder() + "/" + uuid + "/contents/").getAbsolutePath());
 		fileconfiguration.set("screen.parts-folder", new File(configuration.getScreensFolder() + "/" + uuid + "/parts/").getAbsolutePath());
 		fileconfiguration.set("screen.parts-count", width*height);
@@ -330,6 +332,17 @@ public class Screen {
 	
 	public String getName() {
 		return getConfigFile().getString("screen.name");
+	}
+
+	public void setName(String name) {
+		fileconfiguration = new YamlConfiguration();
+		try {
+			fileconfiguration.load(file);
+			fileconfiguration.set("screen.name", name);
+			fileconfiguration.save(file);
+		}catch (IOException | InvalidConfigurationException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -570,6 +583,29 @@ public class Screen {
 	
 	public String getThumbnailPath() {
 		return getConfigFile().getString("screen.thumbnail-path");
+	}
+
+	public ScalingMode getScaleMode() {
+		String raw = getConfigFile().getString("screen.scale-mode");
+		if(raw == null || raw.isEmpty()) {
+			return ScalingMode.FIT;
+		}
+		try {
+			return ScalingMode.valueOf(raw.toUpperCase());
+		}catch (IllegalArgumentException ignored) {
+			return ScalingMode.FIT;
+		}
+	}
+
+	public void setScaleMode(ScalingMode mode) {
+		fileconfiguration = new YamlConfiguration();
+		try {
+			fileconfiguration.load(file);
+			fileconfiguration.set("screen.scale-mode", mode.name());
+			fileconfiguration.save(file);
+		}catch (IOException | InvalidConfigurationException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**

@@ -349,12 +349,7 @@ public class TaskAsyncLoadVideo extends BukkitRunnable {
 	        	
 	        	if(!videoData.getRealTimeRendering()) {
 	                if(configuration.frames_delete_on_loaded()) {
-	            		try {
-	    					FileUtils.deleteDirectory(video.getFramesFolder());
-	    					video.getFramesFolder().mkdir();
-	    				}catch (IOException e) {
-	    					e.printStackTrace();
-	    				}
+	                    Bukkit.getLogger().warning("[MediaPlayer]: Frame deletion is disabled to preserve scaling quality across screens.");
 	                }
 	        	}
 	        	
