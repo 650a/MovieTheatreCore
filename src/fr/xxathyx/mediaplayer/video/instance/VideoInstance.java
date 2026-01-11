@@ -16,7 +16,7 @@ import fr.xxathyx.mediaplayer.video.Video;
 * The VideoInstance class is used in {@link Screen} in order to represent a video that
 * is runned. The class have only two constructors.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

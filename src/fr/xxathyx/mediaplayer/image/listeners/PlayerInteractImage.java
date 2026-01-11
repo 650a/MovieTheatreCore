@@ -34,7 +34,7 @@ import fr.xxathyx.mediaplayer.util.FacingLocation;
 * The PlayerInteractImage class implements {@link Listener}, it consist
 * of a single event method {@link #interactImage(PlayerInteractEntityEvent)}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

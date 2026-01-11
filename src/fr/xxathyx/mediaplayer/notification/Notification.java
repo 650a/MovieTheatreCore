@@ -13,7 +13,7 @@ import fr.xxathyx.mediaplayer.sound.SoundType;
 * method {@link #send(Group, String[])}, can be used across the plugin to send notifications.
 * Rests on a {@link Group} messaging system.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

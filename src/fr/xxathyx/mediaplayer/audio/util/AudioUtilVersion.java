@@ -9,7 +9,7 @@ import fr.xxathyx.mediaplayer.util.AudioUtil;
 * instance of {@link AudioUtil} according to the server running
 * version, the variable is next used in the {@link Main} class.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-03 
 */

@@ -46,7 +46,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 * The VideoCommands class implements {@link CommandExecutor}, it grants an easy in
 * game access to the plugin features concerning videos.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

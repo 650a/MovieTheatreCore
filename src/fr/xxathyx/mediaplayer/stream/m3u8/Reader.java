@@ -16,7 +16,7 @@ import fr.xxathyx.mediaplayer.ffmpeg.Ffmpeg;
 * situtation, its only compatible with Twitch livestreams currently. This class only
 * has one constructor.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

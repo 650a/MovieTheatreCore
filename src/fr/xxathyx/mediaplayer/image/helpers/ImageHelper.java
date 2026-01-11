@@ -16,7 +16,7 @@ import fr.xxathyx.mediaplayer.image.commands.ImageCommands;
 * it contains a few static methods that can be called from everywhere as
 * utilities.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

@@ -9,7 +9,7 @@ import fr.xxathyx.mediaplayer.util.ActionBar;
 * instance of {@link ActionBar} according to the server running
 * version, the variable is next used in the {@link Main} class.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

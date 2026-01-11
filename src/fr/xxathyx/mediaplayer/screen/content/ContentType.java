@@ -4,7 +4,7 @@ package fr.xxathyx.mediaplayer.screen.content;
 * The ContentType enum, manage the content type in a {@link Content} object.
 * This used in the {@link Content} class.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

@@ -18,7 +18,7 @@ import fr.xxathyx.mediaplayer.util.YamlConfigurationManager;
 * section {@link #isOutdated(String)}, then mainly rests on the {@link YamlConfigurationManager}
 * in order to add/remove configuration content.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

@@ -29,7 +29,7 @@ import fr.xxathyx.mediaplayer.video.instance.VideoInstance;
 * asynchronously from the main thread for I/O opperations, this is a thread-safe task since the
 * video isn't parametered to run on start and it isn't accessing sensible {@link Bukkit} API content.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

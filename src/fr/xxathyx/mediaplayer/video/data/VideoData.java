@@ -34,7 +34,7 @@ import fr.xxathyx.mediaplayer.video.data.thumbnail.Thumbnail;
 * 
 * <p> Can be called from {@link Video#getVideoData()}.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

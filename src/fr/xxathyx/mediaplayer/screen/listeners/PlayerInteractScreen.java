@@ -30,7 +30,7 @@ import fr.xxathyx.mediaplayer.video.data.VideoData;
 * of a two event methods {@link #onInteract(PlayerInteractEntityEvent)},
 * and {@link #onInteractAtScreen(PlayerInteractAtEntityEvent)}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

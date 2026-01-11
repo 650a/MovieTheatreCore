@@ -17,7 +17,7 @@ import fr.xxathyx.mediaplayer.video.Video;
 * and update it, it only has one constructor and method,
 * see {@link #update()}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-03 
 */

@@ -20,7 +20,7 @@ import fr.xxathyx.mediaplayer.image.renderer.ImageRenderer;
 * video loading, see {@link TaskAsyncLoadVideos#run()}, the class has only
 * one constructor and a few methods.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-16 
 */

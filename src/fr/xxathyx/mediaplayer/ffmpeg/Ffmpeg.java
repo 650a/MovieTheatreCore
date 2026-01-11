@@ -15,7 +15,7 @@ import fr.xxathyx.mediaplayer.system.SystemType;
 * while the plugin is running, and this on all operating system,
 * see {@link System} and {@link SystemType}.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2022-07-03 
 */

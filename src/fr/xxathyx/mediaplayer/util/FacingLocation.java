@@ -7,7 +7,7 @@ import org.bukkit.entity.LivingEntity;
 * an {@link LivingEntity#getEyeLocation()}. For the moment it only contains a static method,
 * see {@link #getCardinalDirection(LivingEntity)}, more methods will be added further.
 * 
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */

@@ -15,7 +15,7 @@ import fr.xxathyx.mediaplayer.Main;
 * contains some utility static methods such as {@link #getGroup(Player)}
 * that grant access to them to be called from everywhere.
 *
-* @author  Xxathyx
+* @author  hwic
 * @version 1.0.0
 * @since   2021-08-23 
 */
