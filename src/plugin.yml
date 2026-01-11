@@ -1,0 +1,37 @@
+main: fr.xxathyx.mediaplayer.Main
+name: MediaPlayer
+version: 1.0.3
+author: Xxathyx
+description: Allows you to play and use various medias on Minecraft.
+website: https://www.dropbox.com/scl/fi/vpwd2jg4c82w3ialikipn/MediaPlayer.jar?rlkey=uuik96o8rwypliu6q3d54s1gn&st=y0rnbnal&dl=1
+api-version: 1.13
+
+commands:
+  mediaplayer:
+    description: "The plugin informative command, leading to rest of it."
+    permission: mediaplayer.command
+  video:
+    description: "Allows you to interact with the available videos."
+    aliases: [vid]
+    permission: mediaplayer.command.video
+  videos:
+    description: "Allows you to interact with the videos available from a graphical interface."
+    aliases: [vids]
+    permission: mediaplayer.command.videos
+  screen:
+    description: "Allows you to interact with the screens of the videos."
+    permission: mediaplayer.command.screen
+  screens:
+    description: "Displays the list of saved screens."
+    permission: mediaplayer.command.screens
+  image:
+    description: "Allows management and rendering of images."
+    aliases: [img]
+    permission: mediaplayer.command.image
+  images:
+    description: "Displays the list of saved images."
+    aliases: [imgs]
+    permission: mediaplayer.command.images
+permissions:
+  mediaplayer.permission.admin:
+    description: Provides access to various in-game admin tools.
