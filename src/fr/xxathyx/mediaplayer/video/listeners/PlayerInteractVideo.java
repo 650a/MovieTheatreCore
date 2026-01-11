@@ -179,39 +179,9 @@ public class PlayerInteractVideo implements Listener {
 					return;
 				}
 				
-		        boolean visible = false;
-		        
-		        if(plugin.getServerVersion().equals("v1_21_R7") || plugin.getServerVersion().equals("v1_21_R6") || plugin.getServerVersion().equals("v1_21_R5") || plugin.getServerVersion().equals("v1_21_R4") || plugin.getServerVersion().equals("v1_21_R3") || plugin.getServerVersion().equals("v1_21_R2") || plugin.getServerVersion().equals("v1_21_R1") || plugin.getServerVersion().equals("v1_20_R4") || plugin.getServerVersion().equals("v1_20_R3") || plugin.getServerVersion().equals("v1_20_R2") || plugin.getServerVersion().equals("v1_20_R1") || plugin.getServerVersion().equals("v1_19_R3") || plugin.getServerVersion().equals("v1_19_R2") || plugin.getServerVersion().equals("v1_19_R1") || plugin.getServerVersion().equals("v1_18_R2") || plugin.getServerVersion().equals("v1_18_R1") ||
-		        		plugin.getServerVersion().equals("v1_17_R1") || plugin.getServerVersion().equals("v1_16_R3") || plugin.getServerVersion().equals("v1_16_R2") ||
-		        		plugin.getServerVersion().equals("v1_16_R1")) {
-		        	visible = configuration.visible_screen_frames_support();
-		        }
-		        
+		        boolean visible = configuration.visible_screen_frames_support();
 				for(int i = 0; i < frames.size(); i++) {
-					
-					if(plugin.getServerVersion().equals("v1_21_R6")) {
-						if(plugin.isPaper() && !Bukkit.getBukkitVersion().equals("1.21.10-R0.1-SNAPSHOT")) {
-							((org.bukkit.craftbukkit.v1_21_R5.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-						}else ((org.bukkit.craftbukkit.v1_21_R6.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					}else if(plugin.getServerVersion().equals("v1_21_R7")) ((org.bukkit.craftbukkit.v1_21_R7.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_21_R5")) ((org.bukkit.craftbukkit.v1_21_R5.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_21_R4")) ((org.bukkit.craftbukkit.v1_21_R4.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_21_R3")) ((org.bukkit.craftbukkit.v1_21_R3.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_21_R2")) ((org.bukkit.craftbukkit.v1_21_R2.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_21_R1")) ((org.bukkit.craftbukkit.v1_21_R1.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_20_R4")) ((org.bukkit.craftbukkit.v1_20_R4.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_20_R3")) ((org.bukkit.craftbukkit.v1_20_R3.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_20_R2")) ((org.bukkit.craftbukkit.v1_20_R2.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_20_R1")) ((org.bukkit.craftbukkit.v1_20_R1.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_19_R3")) ((org.bukkit.craftbukkit.v1_19_R3.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_19_R2")) ((org.bukkit.craftbukkit.v1_19_R2.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_19_R1")) ((org.bukkit.craftbukkit.v1_19_R1.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_18_R2")) ((org.bukkit.craftbukkit.v1_18_R2.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_18_R1")) ((org.bukkit.craftbukkit.v1_18_R1.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_17_R1")) ((org.bukkit.craftbukkit.v1_17_R1.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_16_R3")) ((org.bukkit.craftbukkit.v1_16_R3.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_16_R2")) ((org.bukkit.craftbukkit.v1_16_R2.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
-					if(plugin.getServerVersion().equals("v1_16_R1")) ((org.bukkit.craftbukkit.v1_16_R1.entity.CraftItemFrame) frames.get(i)).setVisible(visible);
+					setItemFrameVisible(frames.get(i), visible);
 				}
 				
 				Screen screen = plugin.getScreensFrames().containsKey((ItemFrame)event.getRightClicked())
@@ -271,30 +241,7 @@ public class PlayerInteractVideo implements Listener {
 								ItemFrame itemFrame = (ItemFrame) player.getWorld().spawnEntity(first, EntityType.ITEM_FRAME);
 								itemFrame.setItem(new ItemStacks().getMap(videoInstance.getVideo().getVideoData().getMaps().getIds().get(0)));
 								
-								Bukkit.broadcastMessage(plugin.getServerVersion());								
-								if(plugin.getServerVersion().equals("v1_21_R6")) {
-									if(plugin.isPaper() && !Bukkit.getBukkitVersion().equals("1.21.10-R0.1-SNAPSHOT")) {
-										((org.bukkit.craftbukkit.v1_21_R5.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-									}else ((org.bukkit.craftbukkit.v1_21_R6.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								}else if(plugin.getServerVersion().equals("v1_21_R7")) ((org.bukkit.craftbukkit.v1_21_R7.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_21_R5")) ((org.bukkit.craftbukkit.v1_21_R5.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_21_R4")) ((org.bukkit.craftbukkit.v1_21_R4.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_21_R3")) ((org.bukkit.craftbukkit.v1_21_R3.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_21_R2")) ((org.bukkit.craftbukkit.v1_21_R2.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_21_R1")) ((org.bukkit.craftbukkit.v1_21_R1.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_20_R4")) ((org.bukkit.craftbukkit.v1_20_R4.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_20_R3")) ((org.bukkit.craftbukkit.v1_20_R3.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_20_R2")) ((org.bukkit.craftbukkit.v1_20_R2.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_20_R1")) ((org.bukkit.craftbukkit.v1_20_R1.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_19_R3")) ((org.bukkit.craftbukkit.v1_19_R3.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_19_R2")) ((org.bukkit.craftbukkit.v1_19_R2.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_19_R1")) ((org.bukkit.craftbukkit.v1_19_R1.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_18_R2")) ((org.bukkit.craftbukkit.v1_18_R2.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_18_R1")) ((org.bukkit.craftbukkit.v1_18_R1.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_17_R1")) ((org.bukkit.craftbukkit.v1_17_R1.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_16_R3")) ((org.bukkit.craftbukkit.v1_16_R3.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_16_R2")) ((org.bukkit.craftbukkit.v1_16_R2.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
-								if(plugin.getServerVersion().equals("v1_16_R1")) ((org.bukkit.craftbukkit.v1_16_R1.entity.CraftItemFrame) itemFrame).setVisible(visibles[0]);
+								setItemFrameVisible(itemFrame, visibles[0]);
 							}
 						}
 					}
@@ -337,5 +284,13 @@ public class PlayerInteractVideo implements Listener {
 		    return radiusEntities;
 		}
 		return location.getWorld().getNearbyEntities(location, radius, radius, radius);
+	}
+
+	private void setItemFrameVisible(ItemFrame frame, boolean visible) {
+		if(frame == null) return;
+		try {
+			frame.getClass().getMethod("setVisible", boolean.class).invoke(frame, visible);
+		}catch (ReflectiveOperationException ignored) {
+		}
 	}
 }
