@@ -28,6 +28,8 @@ permissions:
     description: Add/remove URL-based media and play direct URLs.
   mediaplayer.pack.manage:
     description: Manage internal resource pack hosting and rebuilds.
+  mediaplayer.deps.manage:
+    description: Manage MediaPlayer dependency status and reinstalls.
   mediaplayer.theatre.room.create:
     description: Create theatre rooms.
   mediaplayer.theatre.room.delete:

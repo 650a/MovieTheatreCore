@@ -202,7 +202,7 @@ public class Main extends JavaPlugin implements Listener {
 			ffmpeg = new Ffmpeg();
 			ffprobe = new Ffprobe();
 
-			if(configuration.plugin_auto_update_libraries()) {
+			if(configuration.dependencies_install_auto_install()) {
 				dependencyManager.warmUpDependenciesAsync();
 			}
 			

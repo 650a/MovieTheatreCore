@@ -53,20 +53,21 @@ public class MediaManager {
             sender.sendMessage(ChatColor.RED + "Media with that name already exists.");
             return;
         }
-        String resolved = resolveUrl(sender, url);
-        if (resolved == null) {
-            return;
-        }
-        if (!isAllowedUrl(resolved)) {
-            sender.sendMessage(ChatColor.RED + "URL not allowed by sources.allowlist-mode (STRICT).");
-            return;
-        }
-        if (!plugin.getFfprobe().isAvailable()) {
-            sender.sendMessage(configuration.libraries_not_installed());
-            return;
-        }
-
         scheduler.runAsync(() -> {
+            String resolved = resolveUrl(sender, url);
+            if (resolved == null) {
+                return;
+            }
+            if (!isAllowedUrl(resolved)) {
+                scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "URL not allowed by sources.allowlist-mode (STRICT)."));
+                return;
+            }
+            DependencyManager.ResolvedBinary ffprobe = plugin.getDependencyManager().resolveBinary(DependencyManager.BinaryType.FFPROBE, true);
+            if (ffprobe == null || !ffprobe.isValid()) {
+                scheduler.runSync(() -> sender.sendMessage(configuration.libraries_not_installed()));
+                return;
+            }
+
             try {
                 MediaEntry entry = downloadEntry(name, resolved, true);
                 File videoFile = ensureVideoFile(entry);
@@ -143,7 +144,8 @@ public class MediaManager {
                 File configFile = getVideoConfigFile(entry);
                 Video video = new Video(configFile);
                 if (!configFile.exists()) {
-                    if (!plugin.getFfprobe().isAvailable()) {
+                    DependencyManager.ResolvedBinary ffprobe = plugin.getDependencyManager().resolveBinary(DependencyManager.BinaryType.FFPROBE, true);
+                    if (ffprobe == null || !ffprobe.isValid()) {
                         scheduler.runSync(() -> {
                             if (onError != null) {
                                 onError.accept(configuration.libraries_not_installed());
@@ -189,22 +191,22 @@ public class MediaManager {
     }
 
     public void playUrl(CommandSender sender, Screen screen, String url, boolean noAudio) {
-        String resolved = resolveUrl(sender, url);
-        if (resolved == null) {
-            return;
-        }
-        if (!isAllowedUrl(resolved)) {
-            sender.sendMessage(ChatColor.RED + "URL not allowed by sources.allowlist-mode (STRICT).");
-            return;
-        }
-        String urlHash = Integer.toHexString(resolved.hashCode());
-        MediaEntry entry = library.getCachedByUrl(urlHash);
-        if (entry != null && cacheManager.getCacheFile(entry).exists()) {
-            playEntry(sender, screen, entry, noAudio);
-            return;
-        }
-
         scheduler.runAsync(() -> {
+            String resolved = resolveUrl(sender, url);
+            if (resolved == null) {
+                return;
+            }
+            if (!isAllowedUrl(resolved)) {
+                scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "URL not allowed by sources.allowlist-mode (STRICT)."));
+                return;
+            }
+            String urlHash = Integer.toHexString(resolved.hashCode());
+            MediaEntry entry = library.getCachedByUrl(urlHash);
+            if (entry != null && cacheManager.getCacheFile(entry).exists()) {
+                scheduler.runSync(() -> playEntry(sender, screen, entry, noAudio));
+                return;
+            }
+
             try {
                 String tempName = "url-" + urlHash;
                 MediaEntry downloaded = downloadEntry(tempName, resolved, false);
@@ -238,7 +240,8 @@ public class MediaManager {
                 File configFile = getVideoConfigFile(entry);
                 Video video = new Video(configFile);
                 if (!configFile.exists()) {
-                    if (!plugin.getFfprobe().isAvailable()) {
+                    DependencyManager.ResolvedBinary ffprobe = plugin.getDependencyManager().resolveBinary(DependencyManager.BinaryType.FFPROBE, true);
+                    if (ffprobe == null || !ffprobe.isValid()) {
                         scheduler.runSync(() -> sender.sendMessage(configuration.libraries_not_installed()));
                         return;
                     }
@@ -320,33 +323,40 @@ public class MediaManager {
         }
         DependencyManager dependencyManager = plugin.getDependencyManager();
         DependencyManager.ResolvedBinary resolver = dependencyManager.resolveBinary(DependencyManager.BinaryType.YT_DLP, true);
-        if (resolver == null || !resolver.isValid() || resolver.getStagedPath() == null) {
-            sender.sendMessage(ChatColor.RED + "YouTube resolver not available. Install yt-dlp or enable auto-update-libraries, then run /mp diagnose.");
+        if (resolver == null || !resolver.isValid() || resolver.getPath() == null) {
+            scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "YouTube resolver not available. Install yt-dlp or enable auto-install, then run /mp deps status."));
             lastResolverExitCode = null;
             lastResolverError = resolver == null ? "yt-dlp not resolved" : resolver.getError();
             return null;
         }
         try {
             List<String> command = new java.util.ArrayList<>();
-            command.add(resolver.getStagedPath().toString());
-            String cookiesPath = configuration.media_youtube_cookies_path();
+            command.add(resolver.getPath().toString());
+            String cookiesPath = configuration.youtube_cookies_path();
             if (cookiesPath == null || cookiesPath.isBlank()) {
-                sender.sendMessage(ChatColor.YELLOW + "No cookies file configured. Set sources.youtube-cookies-path to reduce YouTube bot checks.");
+                scheduler.runSync(() -> sender.sendMessage(ChatColor.YELLOW + "No cookies file configured. Set youtube.cookies-path to reduce YouTube bot checks."));
             } else {
                 File cookiesFile = new File(cookiesPath);
                 if (cookiesFile.exists() && cookiesFile.canRead()) {
                     command.add("--cookies");
                     command.add(cookiesFile.getAbsolutePath());
+                } else if (configuration.youtube_require_cookies()) {
+                    scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "Cookies file required but missing/unreadable: " + cookiesFile.getPath()));
+                    lastResolverExitCode = null;
+                    lastResolverError = "cookies file required";
+                    return null;
                 } else {
-                    sender.sendMessage(ChatColor.RED + "Cookies file missing or unreadable: " + cookiesFile.getPath() + ". Add cookies to avoid YouTube bot checks.");
+                    scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "Cookies file missing or unreadable: " + cookiesFile.getPath() + ". Add cookies to avoid YouTube bot checks."));
                 }
             }
-            DependencyManager.ResolvedBinary deno = dependencyManager.resolveBinary(DependencyManager.BinaryType.DENO, false);
-            if (deno != null && deno.isValid() && deno.getStagedPath() != null) {
-                command.add("--js-runtime");
-                command.add("deno:" + deno.getStagedPath());
-            } else {
-                sender.sendMessage(ChatColor.YELLOW + "Deno not available. yt-dlp may fail JS challenges; run /mp diagnose for details.");
+            if (configuration.youtube_use_js_runtime()) {
+                DependencyManager.ResolvedBinary deno = dependencyManager.resolveBinary(DependencyManager.BinaryType.DENO, true);
+                if (deno != null && deno.isValid() && deno.getPath() != null) {
+                    command.add("--js-runtime");
+                    command.add("deno:" + deno.getPath());
+                } else {
+                    scheduler.runSync(() -> sender.sendMessage(ChatColor.YELLOW + "Deno not available. yt-dlp may fail JS challenges; run /mp deps status for details."));
+                }
             }
             List<String> extraArgs = configuration.media_youtube_extra_args();
             if (extraArgs != null && !extraArgs.isEmpty()) {
@@ -367,17 +377,17 @@ public class MediaManager {
             lastResolverError = errorOutput;
             if (exitCode != 0 || output.isEmpty()) {
                 Bukkit.getLogger().warning("[MediaPlayer]: YouTube resolver exited with code " + exitCode + ". stderr: " + errorOutput);
-                sender.sendMessage(ChatColor.RED + "Resolver failed to return a direct URL.");
+                scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "Resolver failed to return a direct URL."));
                 return null;
             }
             for (String line : output.split("\n")) {
                 String candidate = line.trim();
                 if (!candidate.isEmpty()) {
-                    sender.sendMessage(ChatColor.GREEN + "yt-dlp resolved a direct URL.");
+                    scheduler.runSync(() -> sender.sendMessage(ChatColor.GREEN + "yt-dlp resolved a direct URL."));
                     return candidate;
                 }
             }
-            sender.sendMessage(ChatColor.RED + "Resolver failed to return a direct URL.");
+            scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "Resolver failed to return a direct URL."));
             return null;
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
@@ -385,7 +395,7 @@ public class MediaManager {
             }
             lastResolverExitCode = null;
             lastResolverError = e.getMessage();
-            sender.sendMessage(ChatColor.RED + "Resolver error: " + e.getMessage());
+            scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "Resolver error: " + e.getMessage()));
             return null;
         }
     }

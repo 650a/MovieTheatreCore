@@ -187,6 +187,14 @@
                   <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.apache.commons.lang</shadedPattern>
                 </relocation>
                 <relocation>
+                  <pattern>org.apache.commons.compress</pattern>
+                  <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.apache.commons.compress</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.tukaani</pattern>
+                  <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.tukaani</shadedPattern>
+                </relocation>
+                <relocation>
                   <pattern>org.json.simple</pattern>
                   <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.json.simple</shadedPattern>
                 </relocation>
@@ -212,7 +220,7 @@
                 <mkdir dir="${project.build.directory}/shade-verify" />
                 <unzip src="${project.build.directory}/${project.build.finalName}.jar"
                        dest="${project.build.directory}/shade-verify" />
-                <available file="${project.build.directory}/shade-verify/org/apache/commons/compress/compressors/xz/XZCompressorInputStream.class"
+                <available file="${project.build.directory}/shade-verify/fr/xxathyx/mediaplayer/shaded/org/apache/commons/compress/compressors/xz/XZCompressorInputStream.class"
                            property="xz.present" />
                 <fail message="Missing shaded XZCompressorInputStream.class in ${project.build.finalName}.jar"
                       unless="xz.present" />

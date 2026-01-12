@@ -74,7 +74,28 @@ sources:
   allowlist-mode: OFF
   allowed-domains:
     - "example.com"
-  youtube-cookies-path: ""
+
+dependencies:
+  prefer-system:
+    ffmpeg: true
+    ffprobe: true
+    yt-dlp: true
+    deno: true
+  paths:
+    ffmpeg: ""
+    ffprobe: ""
+    ytdlp: ""
+    deno: ""
+  install:
+    directory: ""
+    auto-install: true
+    auto-update: true
+    update-check-hours: 24
+
+youtube:
+  use-js-runtime: true
+  cookies-path: "plugins/MediaPlayer/cookies.txt"
+  require-cookies: false
 
 audio:
   enabled: false
@@ -112,8 +133,23 @@ resource_pack:
 * `sources.download-timeout-seconds` - Download timeout per URL.
 * `sources.cache-max-gb` - LRU cache size cap.
 * `sources.youtube-resolver-path` - Optional yt-dlp resolver path.
-* `sources.youtube-cookies-path` - Cookies file for YouTube bot checks.
+* `sources.youtube-cookies-path` - Legacy cookies file path (prefer `youtube.cookies-path`).
 * `sources.youtube-extra-args` - Extra yt-dlp arguments.
+* `dependencies.prefer-system.ffmpeg` - Prefer system ffmpeg when valid.
+* `dependencies.prefer-system.ffprobe` - Prefer system ffprobe when valid.
+* `dependencies.prefer-system.yt-dlp` - Prefer system yt-dlp when valid.
+* `dependencies.prefer-system.deno` - Prefer system deno when valid.
+* `dependencies.paths.ffmpeg` - Optional override path for ffmpeg.
+* `dependencies.paths.ffprobe` - Optional override path for ffprobe.
+* `dependencies.paths.ytdlp` - Optional override path for yt-dlp.
+* `dependencies.paths.deno` - Optional override path for deno.
+* `dependencies.install.directory` - Override install directory (defaults to `/tmp/mediaplayer/bin`).
+* `dependencies.install.auto-install` - Automatically download missing dependencies.
+* `dependencies.install.auto-update` - Auto-update downloaded dependencies.
+* `dependencies.install.update-check-hours` - Hours between update checks.
+* `youtube.use-js-runtime` - Enable Deno JS runtime for yt-dlp.
+* `youtube.cookies-path` - Cookies file for YouTube bot checks.
+* `youtube.require-cookies` - Require cookies file before resolving YouTube URLs.
 * `audio.enabled` - Enable audio resource pack generation (vanilla clients).
 * `audio.chunk-seconds` - Chunk size for audio slicing.
 * `audio.codec` - Audio codec (vorbis default).
@@ -192,21 +228,34 @@ rooms:
 * **FILL**: Preserve aspect ratio, crop overflow to fill the screen.
 * **STRETCH**: Ignore aspect ratio and fill the entire screen.
 
-## Pterodactyl noexec staging
+## Zero-config YouTube setup
 
-MediaPlayer always stages binaries to `/tmp/mediaplayer/bin` before execution. This avoids `noexec` mounts in
-`plugins/MediaPlayer` on Pterodactyl/Wings. If `/tmp` is also `noexec`, `/mp diagnose` will report the error and you
-must provide an executable temp path via `-Djava.io.tmpdir=/path`.
+MediaPlayer can download yt-dlp, Deno, ffmpeg, and ffprobe automatically on first use. By default it installs to
+`/tmp/mediaplayer/bin` (Pterodactyl-friendly, no root required) and falls back to the plugin `bin` directory if it is
+executable. Use `/mp deps status` to see which binaries were selected and their versions, and `/mp deps reinstall` to
+force re-downloads.
+
+Binary selection order is:
+1) Config override path
+2) System PATH
+3) MediaPlayer-managed cache directory
+
+## Pterodactyl noexec installs
+
+MediaPlayer prefers `/tmp/mediaplayer/bin` to avoid `noexec` mounts in `plugins/MediaPlayer` on Pterodactyl/Wings.
+If both `/tmp` and the plugin directory are `noexec`, `/mp deps status` will report the error and you must provide an
+executable path via `dependencies.install.directory`.
 
 ## YouTube cookies
 
-YouTube often requires a cookies file for yt-dlp. Set `sources.youtube-cookies-path` to a Netscape-format cookies
-file and keep it readable by the server. MediaPlayer passes `--cookies <path>` when the file exists.
+YouTube often requires a cookies file for yt-dlp. Set `youtube.cookies-path` to a Netscape-format cookies
+file and keep it readable by the server. MediaPlayer passes `--cookies <path>` when the file exists and can
+require cookies when `youtube.require-cookies` is enabled.
 
 ## Diagnose command
 
-Run `/mp diagnose` to verify OS/arch, executable staging status, detected binary versions (ffmpeg/ffprobe/yt-dlp/deno),
-cookies file state, and the last resolver exit code/stderr.
+Run `/mp deps status` or `/mp diagnose` to verify OS/arch, install directory status, detected binary versions
+(ffmpeg/ffprobe/yt-dlp/deno), cookies file state, and the last resolver exit code/stderr.
 
 ## Testing
 

@@ -100,6 +100,23 @@ public class Configuration {
 			fileconfiguration.set("sources.ffmpeg-path", "plugins/MediaPlayer/bin/ffmpeg");
 			fileconfiguration.set("sources.deno-path", "");
 
+			fileconfiguration.set("dependencies.prefer-system.ffmpeg", true);
+			fileconfiguration.set("dependencies.prefer-system.ffprobe", true);
+			fileconfiguration.set("dependencies.prefer-system.yt-dlp", true);
+			fileconfiguration.set("dependencies.prefer-system.deno", true);
+			fileconfiguration.set("dependencies.paths.ffmpeg", "");
+			fileconfiguration.set("dependencies.paths.ffprobe", "");
+			fileconfiguration.set("dependencies.paths.ytdlp", "");
+			fileconfiguration.set("dependencies.paths.deno", "");
+			fileconfiguration.set("dependencies.install.directory", "");
+			fileconfiguration.set("dependencies.install.auto-install", true);
+			fileconfiguration.set("dependencies.install.auto-update", true);
+			fileconfiguration.set("dependencies.install.update-check-hours", 24);
+
+			fileconfiguration.set("youtube.use-js-runtime", true);
+			fileconfiguration.set("youtube.cookies-path", "plugins/MediaPlayer/cookies.txt");
+			fileconfiguration.set("youtube.require-cookies", false);
+
 			fileconfiguration.set("audio.enabled", false);
 			fileconfiguration.set("audio.chunk-seconds", 2);
 			fileconfiguration.set("audio.codec", "vorbis");
@@ -502,6 +519,80 @@ public class Configuration {
 		return getStringValue("sources.deno-path", null, "");
 	}
 
+	public boolean dependencies_prefer_system_ffmpeg() {
+		return getBooleanValue("dependencies.prefer-system.ffmpeg", null, true);
+	}
+
+	public boolean dependencies_prefer_system_ffprobe() {
+		return getBooleanValue("dependencies.prefer-system.ffprobe", null, true);
+	}
+
+	public boolean dependencies_prefer_system_ytdlp() {
+		return getBooleanValue("dependencies.prefer-system.yt-dlp", null, true);
+	}
+
+	public boolean dependencies_prefer_system_deno() {
+		return getBooleanValue("dependencies.prefer-system.deno", null, true);
+	}
+
+	public String dependencies_path_ffmpeg() {
+		String value = getStringValue("dependencies.paths.ffmpeg", null, "");
+		return (value == null || value.isBlank()) ? sources_ffmpeg_path() : value;
+	}
+
+	public String dependencies_path_ffprobe() {
+		String value = getStringValue("dependencies.paths.ffprobe", null, "");
+		return (value == null || value.isBlank()) ? sources_ffprobe_path() : value;
+	}
+
+	public String dependencies_path_ytdlp() {
+		String value = getStringValue("dependencies.paths.ytdlp", null, "");
+		return (value == null || value.isBlank()) ? media_youtube_resolver_path() : value;
+	}
+
+	public String dependencies_path_deno() {
+		String value = getStringValue("dependencies.paths.deno", null, "");
+		return (value == null || value.isBlank()) ? sources_deno_path() : value;
+	}
+
+	public String dependencies_install_directory() {
+		return getStringValue("dependencies.install.directory", null, "");
+	}
+
+	public boolean dependencies_install_auto_install() {
+		if(getConfigFile().contains("dependencies.install.auto-install")) {
+			return getBooleanValue("dependencies.install.auto-install", null, true);
+		}
+		return plugin_auto_update_libraries();
+	}
+
+	public boolean dependencies_install_auto_update() {
+		if(getConfigFile().contains("dependencies.install.auto-update")) {
+			return getBooleanValue("dependencies.install.auto-update", null, true);
+		}
+		return plugin_auto_update_libraries();
+	}
+
+	public long dependencies_install_update_check_hours() {
+		return getLongValue("dependencies.install.update-check-hours", null, 24);
+	}
+
+	public boolean youtube_use_js_runtime() {
+		return getBooleanValue("youtube.use-js-runtime", null, true);
+	}
+
+	public String youtube_cookies_path() {
+		String value = getStringValue("youtube.cookies-path", null, "plugins/MediaPlayer/cookies.txt");
+		if(value == null || value.isBlank()) {
+			return media_youtube_cookies_path();
+		}
+		return value;
+	}
+
+	public boolean youtube_require_cookies() {
+		return getBooleanValue("youtube.require-cookies", null, false);
+	}
+
 	public boolean audio_enabled() {
 		return getBooleanValue("audio.enabled", "audio.enabled", false);
 	}
@@ -670,6 +761,21 @@ public class Configuration {
 		changed |= ensureString(configuration, "sources.ffprobe-path", null, "plugins/MediaPlayer/bin/ffprobe");
 		changed |= ensureString(configuration, "sources.ffmpeg-path", null, "plugins/MediaPlayer/bin/ffmpeg");
 		changed |= ensureString(configuration, "sources.deno-path", null, "");
+		changed |= ensureBoolean(configuration, "dependencies.prefer-system.ffmpeg", null, true);
+		changed |= ensureBoolean(configuration, "dependencies.prefer-system.ffprobe", null, true);
+		changed |= ensureBoolean(configuration, "dependencies.prefer-system.yt-dlp", null, true);
+		changed |= ensureBoolean(configuration, "dependencies.prefer-system.deno", null, true);
+		changed |= ensureString(configuration, "dependencies.paths.ffmpeg", "sources.ffmpeg-path", "");
+		changed |= ensureString(configuration, "dependencies.paths.ffprobe", "sources.ffprobe-path", "");
+		changed |= ensureString(configuration, "dependencies.paths.ytdlp", "sources.youtube-resolver-path", "");
+		changed |= ensureString(configuration, "dependencies.paths.deno", "sources.deno-path", "");
+		changed |= ensureString(configuration, "dependencies.install.directory", null, "");
+		changed |= ensureBoolean(configuration, "dependencies.install.auto-install", "general.auto-update-libraries", true);
+		changed |= ensureBoolean(configuration, "dependencies.install.auto-update", "general.auto-update-libraries", true);
+		changed |= ensureLong(configuration, "dependencies.install.update-check-hours", null, 24L);
+		changed |= ensureBoolean(configuration, "youtube.use-js-runtime", null, true);
+		changed |= ensureString(configuration, "youtube.cookies-path", "sources.youtube-cookies-path", "plugins/MediaPlayer/cookies.txt");
+		changed |= ensureBoolean(configuration, "youtube.require-cookies", null, false);
 
 		if(!hasAllowlistMode) {
 			java.util.List<String> allowedDomains = configuration.getStringList("sources.allowed-domains");
