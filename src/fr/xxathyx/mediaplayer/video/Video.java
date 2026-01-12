@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DecimalFormat;
@@ -12,6 +14,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 import javax.imageio.ImageIO;
@@ -38,10 +42,6 @@ import fr.xxathyx.mediaplayer.util.Format;
 import fr.xxathyx.mediaplayer.video.data.VideoData;
 import fr.xxathyx.mediaplayer.video.data.cache.Cache;
 import fr.xxathyx.mediaplayer.video.instance.VideoInstance;
-import net.bramp.ffmpeg.FFprobe;
-import net.bramp.ffmpeg.probe.FFmpegProbeResult;
-import net.bramp.ffmpeg.probe.FFmpegStream;
-import net.bramp.ffmpeg.probe.FFmpegStream.CodecType;
 
 /** 
 * The Video class is essential in the good functioning of things, its used
@@ -174,9 +174,7 @@ public class Video {
 			
 			int frames = 0;
 			
-	        FFprobe ffprobe;
-	        FFmpegProbeResult probeResult;        
-	        FFmpegStream stream;
+	        ProbeResult probeResult;
 			
         	if(fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.LINUX) || fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.OTHER)) {
         		if(configuration.plugin_force_permissions()) {
@@ -191,28 +189,17 @@ public class Video {
 	        
 			if(!format.equalsIgnoreCase("m3u8")) {
 				
-		        ffprobe = new FFprobe(FilenameUtils.separatorsToUnix(plugin.getFfprobe().getLibraryFile().getAbsolutePath()));
-		        probeResult = ffprobe.probe(videoFile.getAbsolutePath());        
-		        stream = probeResult.getStreams().get(0);
-		        
-				for(FFmpegStream ffmpegStream : probeResult.getStreams()) {
-					if(!ffmpegStream.codec_type.equals(CodecType.VIDEO) && ffmpegStream.codec_type.equals(CodecType.AUDIO)) {
-						audioChannels++;
-					}
+		        probeResult = probeVideo(videoFile);
+		        audioChannels = probeResult.audioStreams;
+				originalWidth = probeResult.width;
+				originalHeight = probeResult.height;
+				framerate = probeResult.framerate;
+				duration = probeResult.duration;
+				frames = probeResult.frames;
+
+				if(frames <= 0 && duration > 0 && framerate > 0) {
+					frames = (int) (duration * framerate) - 1;
 				}
-				
-		        
-				originalWidth = stream.width;
-				originalHeight = stream.height;
-				
-				framerate = Math.round(stream.r_frame_rate.doubleValue());
-				duration = stream.duration;
-				
-				if(format.equalsIgnoreCase("webm") || format.equalsIgnoreCase("mkv") || format.equalsIgnoreCase("wmv")) {
-					duration = probeResult.format.duration;
-					frames = (int) (duration*framerate)-1;
-				}
-				frames = (int) stream.nb_frames;
 			}else {
 				
 				url = plugin.getStreamsURL().get(UUID.fromString(FilenameUtils.removeExtension(file.getName()))).toString();
@@ -231,14 +218,12 @@ public class Video {
 				
 				File[] sequences = sequencesFolder.listFiles();
 				
-		        ffprobe = new FFprobe(FilenameUtils.separatorsToUnix(plugin.getFfprobe().getLibraryFile().getAbsolutePath()));
-		        probeResult = ffprobe.probe(sequences[0].getAbsolutePath());    
-		        stream = probeResult.getStreams().get(1);
-		        
-				originalWidth = stream.width;
-				originalHeight = stream.height;
-				
-				framerate = Math.round(stream.r_frame_rate.doubleValue());
+		        probeResult = probeVideo(sequences[0]);
+				originalWidth = probeResult.width;
+				originalHeight = probeResult.height;
+				framerate = probeResult.framerate;
+				duration = probeResult.duration;
+				audioChannels = probeResult.audioStreams;
 		        
 				for(int i = 0; i < sequences.length; i++) {
 					
@@ -905,18 +890,150 @@ public class Video {
 	public boolean hasAudio() {
 		
 		try {
-			FFprobe ffprobe = new FFprobe(FilenameUtils.separatorsToUnix(plugin.getFfprobe().getLibraryFile().getAbsolutePath()));
-			FFmpegProbeResult probeResult = ffprobe.probe(getVideoFile().getAbsolutePath());
-			
-			for(FFmpegStream ffmpegStream : probeResult.getStreams()) {
-				if(ffmpegStream.codec_type.equals(CodecType.AUDIO)) {
-					return true;
-				}
-			}
+			return countAudioStreams(getVideoFile()) > 0;
 		}catch (IOException e) {
 			e.printStackTrace();
 		}
 		return false;
+	}
+
+	private ProbeResult probeVideo(File target) throws IOException {
+		ProbeResult result = new ProbeResult();
+		Map<String, String> streamValues = parseKeyValueOutput(runFfprobe(
+				"-v", "error",
+				"-select_streams", "v:0",
+				"-show_entries", "stream=width,height,r_frame_rate,nb_frames,duration",
+				"-of", "default=noprint_wrappers=1",
+				target.getAbsolutePath()));
+
+		result.width = parseInt(streamValues.get("width"));
+		result.height = parseInt(streamValues.get("height"));
+		result.framerate = parseFraction(streamValues.get("r_frame_rate"));
+		result.frames = parseInt(streamValues.get("nb_frames"));
+
+		Double streamDuration = parseDouble(streamValues.get("duration"));
+		Double formatDuration = parseDouble(getSingleOutput(runFfprobe(
+				"-v", "error",
+				"-show_entries", "format=duration",
+				"-of", "default=nk=1:nw=1",
+				target.getAbsolutePath())));
+
+		if(formatDuration != null && formatDuration > 0) {
+			result.duration = formatDuration;
+		}else if(streamDuration != null) {
+			result.duration = streamDuration;
+		}
+
+		result.audioStreams = countAudioStreams(target);
+		return result;
+	}
+
+	private int countAudioStreams(File target) throws IOException {
+		List<String> lines = runFfprobe(
+				"-v", "error",
+				"-select_streams", "a",
+				"-show_entries", "stream=index",
+				"-of", "csv=p=0",
+				target.getAbsolutePath());
+		return lines.size();
+	}
+
+	private List<String> runFfprobe(String... args) throws IOException {
+		List<String> command = new ArrayList<>();
+		command.add(FilenameUtils.separatorsToUnix(plugin.getFfprobe().getLibraryFile().getAbsolutePath()));
+		command.addAll(Arrays.asList(args));
+
+		ProcessBuilder processBuilder = new ProcessBuilder(command);
+		processBuilder.redirectErrorStream(true);
+		Process process = processBuilder.start();
+
+		List<String> output = new ArrayList<>();
+		try(BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+			String line;
+			while((line = reader.readLine()) != null) {
+				if(!line.isBlank()) {
+					output.add(line.trim());
+				}
+			}
+		}
+
+		try {
+			process.waitFor();
+		}catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IOException("ffprobe interrupted", e);
+		}
+		return output;
+	}
+
+	private Map<String, String> parseKeyValueOutput(List<String> lines) {
+		Map<String, String> values = new HashMap<>();
+		for(String line : lines) {
+			int splitIndex = line.indexOf('=');
+			if(splitIndex > 0 && splitIndex < line.length() - 1) {
+				values.put(line.substring(0, splitIndex), line.substring(splitIndex + 1));
+			}
+		}
+		return values;
+	}
+
+	private String getSingleOutput(List<String> lines) {
+		if(lines.isEmpty()) {
+			return null;
+		}
+		return lines.get(0);
+	}
+
+	private double parseFraction(String value) {
+		if(value == null || value.isBlank()) {
+			return 0;
+		}
+		if(value.contains("/")) {
+			String[] parts = value.split("/", 2);
+			double numerator = parseDoubleOrZero(parts[0]);
+			double denominator = parseDoubleOrZero(parts[1]);
+			if(denominator == 0) {
+				return 0;
+			}
+			return numerator / denominator;
+		}
+		return parseDoubleOrZero(value);
+	}
+
+	private double parseDoubleOrZero(String value) {
+		Double parsed = parseDouble(value);
+		return parsed == null ? 0 : parsed;
+	}
+
+	private Double parseDouble(String value) {
+		if(value == null || value.isBlank()) {
+			return null;
+		}
+		try {
+			return Double.parseDouble(value.trim());
+		}catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
+	private int parseInt(String value) {
+		if(value == null || value.isBlank()) {
+			return 0;
+		}
+		try {
+			return Integer.parseInt(value.trim());
+		}catch (NumberFormatException e) {
+			return 0;
+		}
+	}
+
+	private static class ProbeResult {
+		private int width;
+		private int height;
+		private double framerate;
+		private double duration;
+		private int frames;
+		private int audioStreams;
 	}
 	
 	/**

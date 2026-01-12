@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -310,28 +311,43 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        List<String> completions = new ArrayList<>();
+        if(!Bukkit.isPrimaryThread()) {
+            return Collections.emptyList();
+        }
 
-        if (args.length == 1) {
-            StringUtil.copyPartialMatches(args[0], Arrays.asList("screen", "media", "play", "stop", "pause", "resume", "scale", "reload"), completions);
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("screen")) {
-            StringUtil.copyPartialMatches(args[1], Arrays.asList("create", "delete", "list"), completions);
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("media")) {
-            StringUtil.copyPartialMatches(args[1], Arrays.asList("add", "remove", "list"), completions);
-        } else if (args.length == 2 && Arrays.asList("play", "stop", "pause", "resume", "scale").contains(args[0].toLowerCase())) {
-            for (Screen screen : plugin.getScreenManager().getScreens().values()) {
-                completions.add(screen.getName());
+        List<String> completions = new ArrayList<>();
+        try {
+            if (args.length == 1) {
+                List<String> candidates = List.of("screen", "media", "play", "stop", "pause", "resume", "scale", "reload");
+                StringUtil.copyPartialMatches(args[0], candidates, completions);
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("screen")) {
+                List<String> candidates = List.of("create", "delete", "list");
+                StringUtil.copyPartialMatches(args[1], candidates, completions);
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("media")) {
+                List<String> candidates = List.of("add", "remove", "list");
+                StringUtil.copyPartialMatches(args[1], candidates, completions);
+            } else if (args.length == 2 && List.of("play", "stop", "pause", "resume", "scale").contains(args[0].toLowerCase())) {
+                List<String> candidates = new ArrayList<>();
+                for (Screen screen : plugin.getScreenManager().getScreens().values()) {
+                    candidates.add(screen.getName());
+                }
+                StringUtil.copyPartialMatches(args[1], candidates, completions);
+            } else if (args.length == 3 && args[0].equalsIgnoreCase("play")) {
+                List<String> candidates = List.of("media", "url");
+                StringUtil.copyPartialMatches(args[2], candidates, completions);
+            } else if (args.length == 3 && args[0].equalsIgnoreCase("scale")) {
+                List<String> candidates = List.of("fit", "fill", "stretch");
+                StringUtil.copyPartialMatches(args[2], candidates, completions);
+            } else if (args.length == 4 && args[0].equalsIgnoreCase("play") && args[2].equalsIgnoreCase("media")) {
+                List<String> candidates = new ArrayList<>();
+                for (fr.xxathyx.mediaplayer.media.MediaEntry entry : plugin.getMediaLibrary().listEntries()) {
+                    candidates.add(entry.getName());
+                }
+                StringUtil.copyPartialMatches(args[3], candidates, completions);
             }
-            StringUtil.copyPartialMatches(args[1], completions, completions);
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("play")) {
-            StringUtil.copyPartialMatches(args[2], Arrays.asList("media", "url"), completions);
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("scale")) {
-            StringUtil.copyPartialMatches(args[2], Arrays.asList("fit", "fill", "stretch"), completions);
-        } else if (args.length == 4 && args[0].equalsIgnoreCase("play") && args[2].equalsIgnoreCase("media")) {
-            for (fr.xxathyx.mediaplayer.media.MediaEntry entry : plugin.getMediaLibrary().listEntries()) {
-                completions.add(entry.getName());
-            }
-            StringUtil.copyPartialMatches(args[3], completions, completions);
+        } catch (Exception e) {
+            plugin.getLogger().warning("Tab completion failed: " + e.getMessage());
+            return Collections.emptyList();
         }
 
         Collections.sort(completions);
