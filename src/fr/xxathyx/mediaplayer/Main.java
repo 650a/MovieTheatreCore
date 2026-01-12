@@ -31,8 +31,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.bergerkiller.bukkit.common.map.MapColorPalette;
-
 import fr.xxathyx.mediaplayer.actionbar.ActionBarVersion;
 import fr.xxathyx.mediaplayer.audio.util.AudioUtilVersion;
 import fr.xxathyx.mediaplayer.audio.AudioPackManager;
@@ -43,7 +41,9 @@ import fr.xxathyx.mediaplayer.dependency.DependencyManager;
 import fr.xxathyx.mediaplayer.ffmpeg.Ffmpeg;
 import fr.xxathyx.mediaplayer.ffmpeg.Ffprobe;
 import fr.xxathyx.mediaplayer.group.Group;
-import fr.xxathyx.mediaplayer.gui.GuiListener;
+import fr.xxathyx.mediaplayer.gui.GuiSupport;
+import fr.xxathyx.mediaplayer.gui.GuiSupportFactory;
+import fr.xxathyx.mediaplayer.gui.LegacyGuiSupport;
 import fr.xxathyx.mediaplayer.media.MediaLibrary;
 import fr.xxathyx.mediaplayer.media.MediaManager;
 import fr.xxathyx.mediaplayer.playback.PlaybackManager;
@@ -159,6 +159,7 @@ public class Main extends JavaPlugin implements Listener {
 	
 	private Configuration configuration;
 	private DependencyManager dependencyManager;
+	private GuiSupport guiSupport;
 	
 	private Ffmpeg ffmpeg;
 	private Ffprobe ffprobe;
@@ -185,111 +186,118 @@ public class Main extends JavaPlugin implements Listener {
 	*/
 	
 	public void onEnable() {
-		
-		serverVersion = ServerVersion.getServerVersion();
-		
-        try {
-            Class.forName("com.destroystokyo.paper.ParticleBuilder"); isPaper = true;
-        }catch (ClassNotFoundException ignored) {}
-		
-		configuration = new Configuration();
-		configuration.setup();
-
-		dependencyManager = new DependencyManager(this);
-		ffmpeg = new Ffmpeg();
-		ffprobe = new Ffprobe();
-
-		if(configuration.plugin_auto_update_libraries()) {
-			dependencyManager.warmUpDependenciesAsync();
-		}
-		
-        translater = new Translater();
-        String langage = translater.ensureTranslationExported(configuration.plugin_langage());
-		
-		updater = new Updater();
-		updater.update();
-		
-		File updateFolder = new File(getDataFolder(), "updater/");
-		File updateTranslation = new File(updateFolder, langage + ".yml");
-		
-		updateFolder.mkdir();
-		
+		guiSupport = new LegacyGuiSupport(this);
 		try {
-			URL translationUrl = Main.class.getResource("/translations/" + langage + ".yml");
-			if(translationUrl == null) {
-				Bukkit.getLogger().warning("[MediaPlayer]: Missing bundled translation " + langage + ".yml, skipping updater translation sync.");
-			}else {
-				URI uri = translationUrl.toURI();
-				if("jar".equals(uri.getScheme())) {
-				    for(FileSystemProvider provider: FileSystemProvider.installedProviders()) {
-				        if(provider.getScheme().equalsIgnoreCase("jar")) {
-				            try {
-				                provider.getFileSystem(uri);
-				            }catch (FileSystemNotFoundException e) {
-				                provider.newFileSystem(uri, Collections.emptyMap());
-				            }
-				        }
-				    }
-				}
-				Path source = Paths.get(uri);
-				
-				Files.copy(source, updateTranslation.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				
-				new ConfigurationUpdater(new File(getDataFolder() + "/translations/", langage + ".yml"), updateTranslation, "messages").update();
+			serverVersion = ServerVersion.getServerVersion();
+			
+	        try {
+	            Class.forName("com.destroystokyo.paper.ParticleBuilder"); isPaper = true;
+	        }catch (ClassNotFoundException ignored) {}
+			
+			configuration = new Configuration();
+			configuration.setup();
+
+			dependencyManager = new DependencyManager(this);
+			ffmpeg = new Ffmpeg();
+			ffprobe = new Ffprobe();
+
+			if(configuration.plugin_auto_update_libraries()) {
+				dependencyManager.warmUpDependenciesAsync();
 			}
 			
-		}catch (URISyntaxException | IOException | InvalidConfigurationException e) {
-	        Bukkit.getLogger().warning("[MediaPlayer]: If you are reloading the plugin skip this message otherwise failed to verify configurations.");
-		}
-		
-		mapUtil = new MapUtilVersion().getMapUtil();
-		actionBar = new ActionBarVersion().getActionBar();
-		audioUtil = new AudioUtilVersion().getAudioUtil();
-		
-		Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable() {
-			@Override
-			public void run() {
-			      MCSDGenBukkit bukkitGen = new MCSDGenBukkit();
-			      bukkitGen.generate();
-			      mapColorSpaceData.readFrom((MapColorSpaceData)bukkitGen);
+	        translater = new Translater();
+	        String langage = translater.ensureTranslationExported(configuration.plugin_langage());
+			
+			updater = new Updater();
+			updater.update();
+			
+			File updateFolder = new File(getDataFolder(), "updater/");
+			File updateTranslation = new File(updateFolder, langage + ".yml");
+			
+			updateFolder.mkdir();
+			
+			try {
+				URL translationUrl = Main.class.getResource("/translations/" + langage + ".yml");
+				if(translationUrl == null) {
+					Bukkit.getLogger().warning("[MediaPlayer]: Missing bundled translation " + langage + ".yml, skipping updater translation sync.");
+				}else {
+					URI uri = translationUrl.toURI();
+					if("jar".equals(uri.getScheme())) {
+					    for(FileSystemProvider provider: FileSystemProvider.installedProviders()) {
+					        if(provider.getScheme().equalsIgnoreCase("jar")) {
+					            try {
+					                provider.getFileSystem(uri);
+					            }catch (FileSystemNotFoundException e) {
+					                provider.newFileSystem(uri, Collections.emptyMap());
+					            }
+					        }
+					    }
+					}
+					Path source = Paths.get(uri);
+					
+					Files.copy(source, updateTranslation.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					
+					new ConfigurationUpdater(new File(getDataFolder() + "/translations/", langage + ".yml"), updateTranslation, "messages").update();
+				}
+				
+			}catch (URISyntaxException | IOException | InvalidConfigurationException e) {
+		        Bukkit.getLogger().warning("[MediaPlayer]: If you are reloading the plugin skip this message otherwise failed to verify configurations.");
 			}
-		});
-		
-        String serverVersion = getServerVersion();
-		
-        if(serverVersion.equals("v1_21_R7") | serverVersion.equals("v1_21_R6") | serverVersion.equals("v1_21_R5") | serverVersion.equals("v1_21_R4") | serverVersion.equals("v1_21_R3") | serverVersion.equals("v1_21_R2") | serverVersion.equals("v1_21_R1") | serverVersion.equals("v1_20_R4") | serverVersion.equals("v1_20_R3") | serverVersion.equals("v1_20_R2") | serverVersion.equals("v1_20_R1") | serverVersion.equals("v1_19_R3") | serverVersion.equals("v1_19_R2") | serverVersion.equals("v1_19_R1") | serverVersion.equals("v1_18_R2") | serverVersion.equals("v1_18_R1") | serverVersion.equals("v1_17_R1") | serverVersion.equals("v1_16_R3") |
-        		serverVersion.equals("v1_16_R2") | serverVersion.equals("v1_16_R1") | serverVersion.equals("v1_15_R1") | serverVersion.equals("v1_14_R1") | serverVersion.equals("v1_13_R1") | serverVersion.equals("v1_13_R2")) {
-        	legacy = false;
-        }
-        
-        if(serverVersion.equals("v1_7_R4") | serverVersion.equals("v1_7_R3") | serverVersion.equals("v1_7_R2") | serverVersion.equals("v1_7_R1")) {
-        	old = true;
-	        Bukkit.getLogger().warning("[MediaPlayer]: The server running version is old and isn't well supported, you may encounter future issues while playing videos.");
-        }
-        
-        screenManager = new ScreenManager(this);
-        playbackManager = new PlaybackManager(this, screenManager);
-        mediaLibrary = new MediaLibrary(this);
-        audioPackManager = new AudioPackManager(this);
-        mediaManager = new MediaManager(this, mediaLibrary, audioPackManager);
+			
+			mapUtil = new MapUtilVersion().getMapUtil();
+			actionBar = new ActionBarVersion().getActionBar();
+			audioUtil = new AudioUtilVersion().getAudioUtil();
+			
+			Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable() {
+				@Override
+				public void run() {
+				      MCSDGenBukkit bukkitGen = new MCSDGenBukkit();
+				      bukkitGen.generate();
+				      mapColorSpaceData.readFrom((MapColorSpaceData)bukkitGen);
+				}
+			});
+			
+	        String serverVersion = getServerVersion();
+			
+	        if(serverVersion.equals("v1_21_R7") | serverVersion.equals("v1_21_R6") | serverVersion.equals("v1_21_R5") | serverVersion.equals("v1_21_R4") | serverVersion.equals("v1_21_R3") | serverVersion.equals("v1_21_R2") | serverVersion.equals("v1_21_R1") | serverVersion.equals("v1_20_R4") | serverVersion.equals("v1_20_R3") | serverVersion.equals("v1_20_R2") | serverVersion.equals("v1_20_R1") | serverVersion.equals("v1_19_R3") | serverVersion.equals("v1_19_R2") | serverVersion.equals("v1_19_R1") | serverVersion.equals("v1_18_R2") | serverVersion.equals("v1_18_R1") | serverVersion.equals("v1_17_R1") | serverVersion.equals("v1_16_R3") |
+	        		serverVersion.equals("v1_16_R2") | serverVersion.equals("v1_16_R1") | serverVersion.equals("v1_15_R1") | serverVersion.equals("v1_14_R1") | serverVersion.equals("v1_13_R1") | serverVersion.equals("v1_13_R2")) {
+	        	legacy = false;
+	        }
+	        
+	        if(serverVersion.equals("v1_7_R4") | serverVersion.equals("v1_7_R3") | serverVersion.equals("v1_7_R2") | serverVersion.equals("v1_7_R1")) {
+	        	old = true;
+		        Bukkit.getLogger().warning("[MediaPlayer]: The server running version is old and isn't well supported, you may encounter future issues while playing videos.");
+	        }
+	        
+	        screenManager = new ScreenManager(this);
+	        playbackManager = new PlaybackManager(this, screenManager);
+	        mediaLibrary = new MediaLibrary(this);
+	        audioPackManager = new AudioPackManager(this);
+	        mediaManager = new MediaManager(this, mediaLibrary, audioPackManager);
 
-        MediaPlayerCommands mediaPlayerCommands = new MediaPlayerCommands(this);
-        getCommand("mediaplayer").setExecutor(mediaPlayerCommands);
-        getCommand("mediaplayer").setTabCompleter(mediaPlayerCommands);
+	        MediaPlayerCommands mediaPlayerCommands = new MediaPlayerCommands(this);
+	        getCommand("mediaplayer").setExecutor(mediaPlayerCommands);
+	        getCommand("mediaplayer").setTabCompleter(mediaPlayerCommands);
 
-		Bukkit.getServer().getPluginManager().registerEvents(new GuiListener(this), this);
-		Bukkit.getServer().getPluginManager().registerEvents(new PlayerBreakScreen(), this);
-		Bukkit.getServer().getPluginManager().registerEvents(new PlayerDamageScreen(), this);
-		Bukkit.getServer().getPluginManager().registerEvents(new PlayerDisconnectScreen(), this);
-				
-		if(!old) Bukkit.getServer().getPluginManager().registerEvents(new ResourcePackStatus(), this);
-				
-		screenManager.loadAll();
-		new TaskAsyncLoadConfigurations().runTaskAsynchronously(this);
-		if(legacy) new TaskAsyncLoadImages().runTaskAsynchronously(this);
-		if(!legacy) new TaskAsyncLoadImages().runTask(this);
-		
-		if(!configuration.plugin_packet_compression()) {}
+	        guiSupport = GuiSupportFactory.create(this);
+	        guiSupport.register();
+
+			Bukkit.getServer().getPluginManager().registerEvents(new PlayerBreakScreen(), this);
+			Bukkit.getServer().getPluginManager().registerEvents(new PlayerDamageScreen(), this);
+			Bukkit.getServer().getPluginManager().registerEvents(new PlayerDisconnectScreen(), this);
+					
+			if(!old) Bukkit.getServer().getPluginManager().registerEvents(new ResourcePackStatus(), this);
+					
+			screenManager.loadAll();
+			new TaskAsyncLoadConfigurations().runTaskAsynchronously(this);
+			if(legacy) new TaskAsyncLoadImages().runTaskAsynchronously(this);
+			if(!legacy) new TaskAsyncLoadImages().runTask(this);
+			
+			if(!configuration.plugin_packet_compression()) {}
+		}catch (Throwable throwable) {
+			Bukkit.getLogger().severe("[MediaPlayer]: Plugin startup encountered an error but will remain enabled with reduced functionality.");
+			throwable.printStackTrace();
+		}
 	}
 	
 	/**
@@ -433,6 +441,10 @@ public class Main extends JavaPlugin implements Listener {
 
 	public DependencyManager getDependencyManager() {
 		return dependencyManager;
+	}
+
+	public GuiSupport getGuiSupport() {
+		return guiSupport == null ? new LegacyGuiSupport(this) : guiSupport;
 	}
 	
 	
