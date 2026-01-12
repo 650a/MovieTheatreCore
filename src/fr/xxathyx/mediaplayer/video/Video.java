@@ -174,30 +174,45 @@ public class Video {
 			
 	        ProbeResult probeResult;
 			
-        	if(fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.LINUX) || fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.OTHER)) {
-        		if(configuration.plugin_force_permissions()) {
-                	try {
-        				Runtime.getRuntime().exec("chmod -R 777 " + FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getLibraryFile().getAbsolutePath())).waitFor();
-        				Runtime.getRuntime().exec("chmod -R 777 " + FilenameUtils.separatorsToUnix(plugin.getFfprobe().getLibraryFile().getAbsolutePath())).waitFor();
-        			}catch (InterruptedException | IOException e) {
-        				e.printStackTrace();
-        			}
-        		}
-        	}
+	        	if(fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.LINUX) || fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.OTHER)) {
+	        		if(configuration.plugin_force_permissions()) {
+	                	try {
+	                		File ffmpegFile = plugin.getFfmpeg().getExecutableFile();
+	                		if(ffmpegFile != null) {
+		        				Runtime.getRuntime().exec("chmod -R 777 " + FilenameUtils.separatorsToUnix(ffmpegFile.getAbsolutePath())).waitFor();
+	                		}
+	                		File ffprobeFile = plugin.getFfprobe().getExecutableFile();
+	                		if(ffprobeFile != null) {
+		        				Runtime.getRuntime().exec("chmod -R 777 " + FilenameUtils.separatorsToUnix(ffprobeFile.getAbsolutePath())).waitFor();
+	                		}
+	        			}catch (InterruptedException | IOException e) {
+	        				e.printStackTrace();
+	        			}
+	        		}
+	        	}
 	        
 			if(!format.equalsIgnoreCase("m3u8")) {
 				
-		        probeResult = probeVideo(videoFile);
-		        audioChannels = probeResult.audioStreams;
-				originalWidth = probeResult.width;
-				originalHeight = probeResult.height;
-				framerate = probeResult.framerate;
-				duration = probeResult.duration;
-				frames = probeResult.frames;
+		        try {
+		        	probeResult = probeVideo(videoFile);
+		        }catch (IOException e) {
+					Bukkit.getLogger().warning("[MediaPlayer]: " + e.getMessage());
+		        	probeResult = null;
+		        }
+		        if(probeResult != null) {
+		        	audioChannels = probeResult.audioStreams;
+					originalWidth = probeResult.width;
+					originalHeight = probeResult.height;
+					framerate = probeResult.framerate;
+					duration = probeResult.duration;
+					frames = probeResult.frames;
 
-				if(frames <= 0 && duration > 0 && framerate > 0) {
-					frames = (int) (duration * framerate) - 1;
-				}
+					if(frames <= 0 && duration > 0 && framerate > 0) {
+						frames = (int) (duration * framerate) - 1;
+					}
+		        } else {
+					Bukkit.getLogger().warning("[MediaPlayer]: ffprobe unavailable. Video metadata will be limited.");
+		        }
 			}else {
 				
 				url = plugin.getStreamsURL().get(UUID.fromString(FilenameUtils.removeExtension(file.getName()))).toString();
@@ -216,16 +231,25 @@ public class Video {
 				
 				File[] sequences = sequencesFolder.listFiles();
 				
-		        probeResult = probeVideo(sequences[0]);
-				originalWidth = probeResult.width;
-				originalHeight = probeResult.height;
-				framerate = probeResult.framerate;
-				duration = probeResult.duration;
-				audioChannels = probeResult.audioStreams;
+		        try {
+		        	probeResult = probeVideo(sequences[0]);
+		        }catch (IOException e) {
+					Bukkit.getLogger().warning("[MediaPlayer]: " + e.getMessage());
+		        	probeResult = null;
+		        }
+		        if(probeResult != null) {
+					originalWidth = probeResult.width;
+					originalHeight = probeResult.height;
+					framerate = probeResult.framerate;
+					duration = probeResult.duration;
+					audioChannels = probeResult.audioStreams;
+		        } else {
+					Bukkit.getLogger().warning("[MediaPlayer]: ffprobe unavailable. Stream metadata will be limited.");
+		        }
 		        
 				for(int i = 0; i < sequences.length; i++) {
 					
-		    		String[] videoCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getLibraryFile().getAbsolutePath()),
+		    		String[] videoCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getExecutablePath()),
 		    				"-hide_banner",
 		    				"-loglevel", "error",
 		    				"-i", FilenameUtils.separatorsToUnix(sequences[i].getAbsolutePath()),
@@ -255,7 +279,11 @@ public class Video {
 				}
 				
 				frames = getFramesFolder().listFiles().length;
-				duration = frames/framerate;
+				if(framerate > 0) {
+					duration = frames/framerate;
+				} else {
+					duration = 0;
+				}
 			}
 			
 			if(format.equalsIgnoreCase("gif")) {

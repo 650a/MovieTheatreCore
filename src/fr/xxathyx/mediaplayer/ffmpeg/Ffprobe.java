@@ -8,6 +8,7 @@ import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 
 import fr.xxathyx.mediaplayer.Main;
+import fr.xxathyx.mediaplayer.configuration.Configuration;
 import fr.xxathyx.mediaplayer.system.SystemType;
 
 /** 
@@ -23,6 +24,7 @@ import fr.xxathyx.mediaplayer.system.SystemType;
 public class Ffprobe {
 	
 	private final Main plugin = Main.getPlugin(Main.class);
+	private final Configuration configuration = new Configuration();
 	
     /**
      * Gets the ffprobe library file according to used operating system.
@@ -43,6 +45,32 @@ public class Ffprobe {
 	
 	public boolean isInstalled() {
 		return getLibraryFile().exists();
+	}
+
+	public String getExecutablePath() {
+		String configured = configuration.sources_ffprobe_path();
+		if(configured != null && !configured.isBlank()) {
+			File configuredFile = new File(configured);
+			if(configuredFile.exists()) {
+				return configuredFile.getAbsolutePath();
+			}
+			if(!hasPathSeparator(configured)) {
+				return configured;
+			}
+		}
+		if(isInstalled()) {
+			return getLibraryFile().getAbsolutePath();
+		}
+		return "ffprobe";
+	}
+
+	public File getExecutableFile() {
+		File file = new File(getExecutablePath());
+		return file.exists() ? file : null;
+	}
+
+	public boolean isAvailable() {
+		return getExecutableFile() != null || !hasPathSeparator(getExecutablePath());
 	}
 	
     /**
@@ -72,5 +100,9 @@ public class Ffprobe {
 	        Bukkit.getLogger().warning("[MediaPlayer]: Couldn't download plugin libraries, try again later or join our discord community, invitation visible on spigot ressource page.");
 			e.printStackTrace();
 		}
+	}
+
+	private boolean hasPathSeparator(String value) {
+		return value.contains("/") || value.contains("\\");
 	}
 }

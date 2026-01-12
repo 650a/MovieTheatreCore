@@ -49,7 +49,7 @@ public class Stream {
 	
 	public void update() {
 		
-		if(!ffmpeg.isInstalled()) {
+		if(!ffmpeg.isAvailable()) {
 	        Bukkit.getLogger().warning("[MediaPlayer]: " + configuration.libraries_not_installed());
 			return;
 		}
@@ -58,7 +58,7 @@ public class Stream {
         	
     		URL url = video.getStreamURL();
 			
-    		String[] videoCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getLibraryFile().getAbsolutePath()),
+    		String[] videoCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getExecutablePath()),
     				"-hide_banner",
     				"-loglevel", "error",
     				"-i", url.toString(),

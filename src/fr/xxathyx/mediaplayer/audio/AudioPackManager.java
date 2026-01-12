@@ -117,7 +117,7 @@ public class AudioPackManager {
         String output = new File(chunkFolder, "chunk_%03d.ogg").getAbsolutePath();
 
         String[] command = {
-                plugin.getFfmpeg().getLibraryFile().getAbsolutePath(),
+                plugin.getFfmpeg().getExecutablePath(),
                 "-hide_banner",
                 "-loglevel", "error",
                 "-i", mediaFile.getAbsolutePath(),

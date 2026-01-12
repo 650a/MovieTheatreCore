@@ -128,7 +128,7 @@ public class InventoryClickPanel implements Listener {
 	        
 	        if(event.getCurrentItem().getItemMeta().getDisplayName().equals(items.load().getItemMeta().getDisplayName())) {
 	        	
-	    		if(!ffmpeg.isInstalled()) {
+	    		if(!ffmpeg.isAvailable()) {
 	    	        Bukkit.getLogger().warning("[MediaPlayer]: " + configuration.libraries_not_installed());
 	    			return;
 	    		}

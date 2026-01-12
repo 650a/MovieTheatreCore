@@ -15,20 +15,15 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import fr.xxathyx.mediaplayer.Main;
-import fr.xxathyx.mediaplayer.configuration.Configuration;
-
 public class FFprobeService {
 
 	private final Main plugin = Main.getPlugin(Main.class);
-	private final Configuration configuration = new Configuration();
 
 	public ProbeResult probe(File target) throws IOException {
-		if(!plugin.getFfprobe().isInstalled()) {
-			throw new IOException(configuration.libraries_not_installed());
-		}
+		String executable = plugin.getFfprobe().getExecutablePath();
 
 		List<String> command = new ArrayList<>();
-		command.add(FilenameUtils.separatorsToUnix(plugin.getFfprobe().getLibraryFile().getAbsolutePath()));
+		command.add(FilenameUtils.separatorsToUnix(executable));
 		command.addAll(Arrays.asList(
 				"-v", "error",
 				"-print_format", "json",
@@ -38,7 +33,12 @@ public class FFprobeService {
 
 		ProcessBuilder processBuilder = new ProcessBuilder(command);
 		processBuilder.redirectErrorStream(true);
-		Process process = processBuilder.start();
+		Process process;
+		try {
+			process = processBuilder.start();
+		}catch (IOException e) {
+			throw new IOException("ffprobe executable not available: " + executable, e);
+		}
 
 		StringBuilder output = new StringBuilder();
 		try(BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
@@ -50,15 +50,16 @@ public class FFprobeService {
 			}
 		}
 
+		int exitCode;
 		try {
-			process.waitFor();
+			exitCode = process.waitFor();
 		}catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new IOException("ffprobe interrupted", e);
 		}
 
 		if(output.isEmpty()) {
-			throw new IOException("ffprobe returned no output.");
+			throw new IOException("ffprobe returned no output (exit code " + exitCode + ").");
 		}
 
 		JSONObject json = parseJson(output.toString());
@@ -66,8 +67,14 @@ public class FFprobeService {
 	}
 
 	private JSONObject parseJson(String output) throws IOException {
+		String trimmed = output.trim();
+		int start = trimmed.indexOf('{');
+		int end = trimmed.lastIndexOf('}');
+		if(start >= 0 && end > start && (start != 0 || end != trimmed.length() - 1)) {
+			trimmed = trimmed.substring(start, end + 1);
+		}
 		try {
-			Object parsed = new JSONParser().parse(output);
+			Object parsed = new JSONParser().parse(trimmed);
 			if(parsed instanceof JSONObject json) {
 				return json;
 			}

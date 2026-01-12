@@ -92,6 +92,8 @@ public class Configuration {
 			fileconfiguration.set("sources.download-timeout-seconds", 30);
 			fileconfiguration.set("sources.cache-max-gb", 5);
 			fileconfiguration.set("sources.youtube-resolver-path", "");
+			fileconfiguration.set("sources.ffprobe-path", "plugins/MediaPlayer/bin/ffprobe");
+			fileconfiguration.set("sources.ffmpeg-path", "plugins/MediaPlayer/bin/ffmpeg");
 
 			fileconfiguration.set("audio.enabled", false);
 			fileconfiguration.set("audio.chunk-seconds", 2);
@@ -447,6 +449,14 @@ public class Configuration {
 		return getStringValue("sources.youtube-resolver-path", "media.youtube-resolver-path", "");
 	}
 
+	public String sources_ffprobe_path() {
+		return getStringValue("sources.ffprobe-path", null, "plugins/MediaPlayer/bin/ffprobe");
+	}
+
+	public String sources_ffmpeg_path() {
+		return getStringValue("sources.ffmpeg-path", null, "plugins/MediaPlayer/bin/ffmpeg");
+	}
+
 	public boolean audio_enabled() {
 		return getBooleanValue("audio.enabled", "audio.enabled", false);
 	}
@@ -534,6 +544,8 @@ public class Configuration {
 		changed |= ensureInt(configuration, "sources.download-timeout-seconds", "media.download-timeout-seconds", 30);
 		changed |= ensureLong(configuration, "sources.cache-max-gb", "media.cache-max-gb", 5);
 		changed |= ensureString(configuration, "sources.youtube-resolver-path", "media.youtube-resolver-path", "");
+		changed |= ensureString(configuration, "sources.ffprobe-path", null, "plugins/MediaPlayer/bin/ffprobe");
+		changed |= ensureString(configuration, "sources.ffmpeg-path", null, "plugins/MediaPlayer/bin/ffmpeg");
 
 		changed |= ensureBoolean(configuration, "audio.enabled", "audio.enabled", false);
 		changed |= ensureInt(configuration, "audio.chunk-seconds", "audio.chunk-seconds", 2);

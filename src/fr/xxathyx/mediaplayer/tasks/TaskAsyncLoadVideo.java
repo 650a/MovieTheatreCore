@@ -95,14 +95,17 @@ public class TaskAsyncLoadVideo extends BukkitRunnable {
 	        	if(fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.LINUX) || fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.OTHER)) {
 	        		if(configuration.plugin_force_permissions()) {
 	                	try {
-	        				Runtime.getRuntime().exec("chmod -R 777 " + FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getLibraryFile().getAbsolutePath())).waitFor();
+	        				File ffmpegFile = plugin.getFfmpeg().getExecutableFile();
+	        				if(ffmpegFile != null) {
+	        					Runtime.getRuntime().exec("chmod -R 777 " + FilenameUtils.separatorsToUnix(ffmpegFile.getAbsolutePath())).waitFor();
+	        				}
 	        			}catch (InterruptedException | IOException e) {
 	        				e.printStackTrace();
 	        			}
 	        		}
 	        	}
 	        	
-	    		String[] videoCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getLibraryFile().getAbsolutePath())
+	    		String[] videoCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getExecutablePath())
 	    				, "-hide_banner",
 	    				"-loglevel", "error",
 	    				"-i", FilenameUtils.separatorsToUnix(video.getVideoFile().getAbsolutePath()),
@@ -176,7 +179,7 @@ public class TaskAsyncLoadVideo extends BukkitRunnable {
 	            		}
 	            		File initialAudio = new File(video.getAudioFolder(), "0.ogg");
 	            		File fixedAudio = new File(video.getAudioFolder(), "0-fixed.ogg");
-	            		String[] audioCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getLibraryFile().getAbsolutePath()),
+	            		String[] audioCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getExecutablePath()),
 	            				"-hide_banner",
 	            				"-loglevel", "error",
 	            				"-i", FilenameUtils.separatorsToUnix(video.getVideoFile().getAbsolutePath()),
@@ -198,7 +201,7 @@ public class TaskAsyncLoadVideo extends BukkitRunnable {
 	            		}
 
 	            		if(initialAudio.exists()) {
-	            			String[] fixCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getLibraryFile().getAbsolutePath()),
+	            			String[] fixCommand = {FilenameUtils.separatorsToUnix(plugin.getFfmpeg().getExecutablePath()),
 	            				"-hide_banner",
 	            				"-loglevel", "error",
 	            				"-y",

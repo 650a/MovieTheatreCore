@@ -345,7 +345,7 @@ public class VideoCommands implements CommandExecutor, TabCompleter {
 						
 						if(arg3[0].equalsIgnoreCase("load")) {
 							
-							if(!ffmpeg.isInstalled()) {
+							if(!ffmpeg.isAvailable()) {
 						        Bukkit.getLogger().warning("[MediaPlayer]: " + configuration.libraries_not_installed());
 								return true;
 							}

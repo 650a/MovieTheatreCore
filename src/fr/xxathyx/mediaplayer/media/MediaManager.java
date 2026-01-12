@@ -58,7 +58,7 @@ public class MediaManager {
             sender.sendMessage(ChatColor.RED + "URL not allowed by media.allowed-domains.");
             return;
         }
-        if (!plugin.getFfprobe().isInstalled()) {
+        if (!plugin.getFfprobe().isAvailable()) {
             sender.sendMessage(configuration.libraries_not_installed());
             return;
         }
@@ -166,7 +166,7 @@ public class MediaManager {
                 File configFile = getVideoConfigFile(entry);
                 Video video = new Video(configFile);
                 if (!configFile.exists()) {
-                    if (!plugin.getFfprobe().isInstalled()) {
+                    if (!plugin.getFfprobe().isAvailable()) {
                         scheduler.runSync(() -> sender.sendMessage(configuration.libraries_not_installed()));
                         return;
                     }
