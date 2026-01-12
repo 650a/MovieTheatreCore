@@ -19,7 +19,6 @@ import org.bukkit.util.StringUtil;
 import fr.xxathyx.mediaplayer.Main;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
 import fr.xxathyx.mediaplayer.dependency.DependencyManager;
-import fr.xxathyx.mediaplayer.gui.ScreenManagerMenu;
 import fr.xxathyx.mediaplayer.playback.PlaybackManager;
 import fr.xxathyx.mediaplayer.render.ScalingMode;
 import fr.xxathyx.mediaplayer.screen.Screen;
@@ -119,7 +118,7 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                     }
                     case "list" -> {
                         if (sender instanceof Player player) {
-                            new ScreenManagerMenu(plugin).open(player);
+                            plugin.getGuiSupport().openScreenManager(player);
                         } else {
                             sender.sendMessage(ChatColor.GOLD + "Screens: ");
                             for (Screen screen : screenManager.getScreens().values()) {
