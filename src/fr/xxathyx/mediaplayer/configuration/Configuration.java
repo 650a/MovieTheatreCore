@@ -106,6 +106,12 @@ public class Configuration {
 
 			fileconfiguration.set("resource_pack.url", "");
 			fileconfiguration.set("resource_pack.sha1", "");
+			fileconfiguration.set("resource_pack.assets-hash", "");
+			fileconfiguration.set("resource_pack.last-build", 0L);
+			fileconfiguration.set("resource_pack.server.enabled", true);
+			fileconfiguration.set("resource_pack.server.bind", "0.0.0.0");
+			fileconfiguration.set("resource_pack.server.port", 8123);
+			fileconfiguration.set("resource_pack.server.public-url", "");
 
 			fileconfiguration.set("advanced.delete-frames-on-loaded", false);
 			fileconfiguration.set("advanced.delete-video-on-loaded", false);
@@ -504,11 +510,57 @@ public class Configuration {
 		return getStringValue("resource_pack.sha1", "resourcepack.sha1", "");
 	}
 
+	public String resourcepack_assets_hash() {
+		return getStringValue("resource_pack.assets-hash", null, "");
+	}
+
+	public long resourcepack_last_build() {
+		return getLongValue("resource_pack.last-build", null, 0L);
+	}
+
+	public boolean resourcepack_server_enabled() {
+		return getBooleanValue("resource_pack.server.enabled", null, true);
+	}
+
+	public String resourcepack_server_bind() {
+		return getStringValue("resource_pack.server.bind", null, "0.0.0.0");
+	}
+
+	public int resourcepack_server_port() {
+		return getIntValue("resource_pack.server.port", null, 8123);
+	}
+
+	public String resourcepack_server_public_url() {
+		return getStringValue("resource_pack.server.public-url", null, "");
+	}
+
 	public void set_resourcepack_sha1(String sha1) {
 		fileconfiguration = new YamlConfiguration();
 		try {
 			fileconfiguration.load(configurationFile);
 			fileconfiguration.set("resource_pack.sha1", sha1);
+			fileconfiguration.save(configurationFile);
+		}catch (IOException | InvalidConfigurationException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void set_resourcepack_assets_hash(String hash) {
+		fileconfiguration = new YamlConfiguration();
+		try {
+			fileconfiguration.load(configurationFile);
+			fileconfiguration.set("resource_pack.assets-hash", hash);
+			fileconfiguration.save(configurationFile);
+		}catch (IOException | InvalidConfigurationException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void set_resourcepack_last_build(long timestamp) {
+		fileconfiguration = new YamlConfiguration();
+		try {
+			fileconfiguration.load(configurationFile);
+			fileconfiguration.set("resource_pack.last-build", timestamp);
 			fileconfiguration.save(configurationFile);
 		}catch (IOException | InvalidConfigurationException e) {
 			e.printStackTrace();
@@ -589,6 +641,12 @@ public class Configuration {
 
 		changed |= ensureString(configuration, "resource_pack.url", "resourcepack.host-url", "");
 		changed |= ensureString(configuration, "resource_pack.sha1", "resourcepack.sha1", "");
+		changed |= ensureString(configuration, "resource_pack.assets-hash", null, "");
+		changed |= ensureLong(configuration, "resource_pack.last-build", null, 0L);
+		changed |= ensureBoolean(configuration, "resource_pack.server.enabled", null, true);
+		changed |= ensureString(configuration, "resource_pack.server.bind", null, "0.0.0.0");
+		changed |= ensureInt(configuration, "resource_pack.server.port", null, 8123);
+		changed |= ensureString(configuration, "resource_pack.server.public-url", null, "");
 
 		changed |= ensureBoolean(configuration, "advanced.delete-frames-on-loaded", "plugin.delete-frames-on-loaded", false);
 		changed |= ensureBoolean(configuration, "advanced.delete-video-on-loaded", "plugin.delete-video-on-loaded", false);

@@ -1,9 +1,11 @@
 package fr.xxathyx.mediaplayer.commands;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,6 +22,7 @@ import fr.xxathyx.mediaplayer.Main;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
 import fr.xxathyx.mediaplayer.dependency.DependencyManager;
 import fr.xxathyx.mediaplayer.playback.PlaybackManager;
+import fr.xxathyx.mediaplayer.resourcepack.EmbeddedPackServer;
 import fr.xxathyx.mediaplayer.render.ScalingMode;
 import fr.xxathyx.mediaplayer.screen.Screen;
 import fr.xxathyx.mediaplayer.screen.ScreenManager;
@@ -220,6 +223,35 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                 sendDiagnostics(sender);
                 return true;
             }
+            case "pack" -> {
+                if (!sender.hasPermission("mediaplayer.pack.manage")) {
+                    sender.sendMessage(configuration.insufficient_permissions());
+                    return true;
+                }
+                if (filteredArgs.size() < 2) {
+                    sendPackHelp(sender);
+                    return true;
+                }
+                switch (filteredArgs.get(1).toLowerCase()) {
+                    case "status" -> {
+                        sendPackStatus(sender);
+                        return true;
+                    }
+                    case "rebuild" -> {
+                        sender.sendMessage(ChatColor.YELLOW + "Rebuilding resource pack...");
+                        plugin.getAudioPackManager().rebuildPackAsync(sender);
+                        return true;
+                    }
+                    case "url" -> {
+                        sendPackUrl(sender);
+                        return true;
+                    }
+                    default -> {
+                        sendPackHelp(sender);
+                        return true;
+                    }
+                }
+            }
             case "stop" -> {
                 if (!sender.hasPermission("mediaplayer.playback")) {
                     sender.sendMessage(configuration.insufficient_permissions());
@@ -323,13 +355,16 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         try {
             if (args.length == 1) {
-                List<String> candidates = List.of("screen", "media", "play", "stop", "pause", "resume", "scale", "reload", "diagnose");
+                List<String> candidates = List.of("screen", "media", "play", "stop", "pause", "resume", "scale", "reload", "diagnose", "pack");
                 StringUtil.copyPartialMatches(args[0], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("screen")) {
                 List<String> candidates = List.of("create", "delete", "list");
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("media")) {
                 List<String> candidates = List.of("add", "remove", "list");
+                StringUtil.copyPartialMatches(args[1], candidates, completions);
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("pack")) {
+                List<String> candidates = List.of("status", "rebuild", "url");
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
             } else if (args.length == 2 && List.of("play", "stop", "pause", "resume", "scale").contains(args[0].toLowerCase())) {
                 List<String> candidates = new ArrayList<>();
@@ -376,6 +411,9 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mp scale <screen> <fit|fill|stretch>");
         sender.sendMessage(ChatColor.YELLOW + "/mp reload");
         sender.sendMessage(ChatColor.YELLOW + "/mp diagnose");
+        sender.sendMessage(ChatColor.YELLOW + "/mp pack status");
+        sender.sendMessage(ChatColor.YELLOW + "/mp pack rebuild");
+        sender.sendMessage(ChatColor.YELLOW + "/mp pack url");
     }
 
     private void sendScreenHelp(CommandSender sender) {
@@ -390,6 +428,58 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mp media add <name> <url>");
         sender.sendMessage(ChatColor.YELLOW + "/mp media remove <name>");
         sender.sendMessage(ChatColor.YELLOW + "/mp media list");
+    }
+
+    private void sendPackHelp(CommandSender sender) {
+        sender.sendMessage(ChatColor.GOLD + "Pack commands:");
+        sender.sendMessage(ChatColor.YELLOW + "/mp pack status");
+        sender.sendMessage(ChatColor.YELLOW + "/mp pack rebuild");
+        sender.sendMessage(ChatColor.YELLOW + "/mp pack url");
+    }
+
+    private void sendPackStatus(CommandSender sender) {
+        fr.xxathyx.mediaplayer.audio.AudioPackManager packManager = plugin.getAudioPackManager();
+        if (packManager == null) {
+            sender.sendMessage(ChatColor.RED + "Pack manager not available.");
+            return;
+        }
+        EmbeddedPackServer server = packManager.getPackServer();
+        boolean enabled = configuration.resourcepack_server_enabled();
+        boolean running = server.isRunning();
+        String bind = configuration.resourcepack_server_bind() + ":" + configuration.resourcepack_server_port();
+        String publicUrl = configuration.resourcepack_server_public_url();
+        String packUrl = packManager.getPackUrl();
+        String sha1 = packManager.getPackSha1();
+        long lastBuild = packManager.getLastBuildMillis();
+
+        sender.sendMessage(ChatColor.GOLD + "MediaPlayer pack status:");
+        sender.sendMessage(ChatColor.GRAY + "Audio enabled: " + yesNo(configuration.audio_enabled()));
+        sender.sendMessage(ChatColor.GRAY + "Server enabled: " + yesNo(enabled));
+        sender.sendMessage(ChatColor.GRAY + "Server running: " + yesNo(running));
+        sender.sendMessage(ChatColor.GRAY + "Bind: " + bind);
+        sender.sendMessage(ChatColor.GRAY + "Public URL override: " + (publicUrl == null || publicUrl.isBlank() ? "none" : publicUrl));
+        sender.sendMessage(ChatColor.GRAY + "Pack URL: " + (packUrl == null ? "n/a" : packUrl));
+        sender.sendMessage(ChatColor.GRAY + "Pack SHA1: " + (sha1 == null || sha1.isBlank() ? "n/a" : sha1));
+        sender.sendMessage(ChatColor.GRAY + "Last build: " + formatTimestamp(lastBuild));
+        if (!running && server.getLastError() != null) {
+            sender.sendMessage(ChatColor.RED + "Server error: " + server.getLastError());
+        }
+    }
+
+    private void sendPackUrl(CommandSender sender) {
+        fr.xxathyx.mediaplayer.audio.AudioPackManager packManager = plugin.getAudioPackManager();
+        if (packManager == null) {
+            sender.sendMessage(ChatColor.RED + "Pack manager not available.");
+            return;
+        }
+        String url = packManager.getPackUrl();
+        String sha1 = packManager.getPackSha1();
+        if (url == null || url.isBlank()) {
+            sender.sendMessage(ChatColor.RED + "Pack URL not configured. Enable the internal server or set resource_pack.url.");
+            return;
+        }
+        sender.sendMessage(ChatColor.GREEN + "Pack URL: " + url);
+        sender.sendMessage(ChatColor.GREEN + "Pack SHA1: " + (sha1 == null || sha1.isBlank() ? "n/a" : sha1));
     }
 
     private void sendDiagnostics(CommandSender sender) {
@@ -435,6 +525,13 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
 
     private String yesNo(boolean value) {
         return value ? "yes" : "no";
+    }
+
+    private String formatTimestamp(long value) {
+        if (value <= 0) {
+            return "n/a";
+        }
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(value));
     }
 
     private int parseInt(CommandSender sender, String value) {

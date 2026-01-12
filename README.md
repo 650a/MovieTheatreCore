@@ -32,6 +32,9 @@ Root command: `/mediaplayer` (alias `/mp`).
 * `/mp scale <screen> <fit|fill|stretch>` - Change scaling mode.
 * `/mp reload` - Reload MediaPlayer screens and stop sessions.
 * `/mp diagnose` - Show dependency and resolver status.
+* `/mp pack status` - Show pack server status and current pack URL/SHA1.
+* `/mp pack rebuild` - Force a pack rebuild.
+* `/mp pack url` - Print pack URL + SHA1.
 
 Screen list entries open a Screen Control GUI with Play/Stop/Pause/Resume and scaling shortcuts.
 
@@ -43,6 +46,7 @@ Screen list entries open a Screen Control GUI with Play/Stop/Pause/Resume and sc
 * `mediaplayer.admin` - Reload MediaPlayer.
 * `mediaplayer.media.manage` - List cached media.
 * `mediaplayer.media.admin` - Add/remove URL media and play direct URLs.
+* `mediaplayer.pack.manage` - View/rebuild pack status and URL.
 
 ## Minimal configuration
 
@@ -61,6 +65,11 @@ audio:
 
 resource_pack:
   url: ""
+  server:
+    enabled: true
+    bind: "0.0.0.0"
+    port: 8123
+    public-url: ""
 ```
 
 ## Configuration keys
@@ -84,8 +93,14 @@ resource_pack:
 * `audio.chunk-seconds` - Chunk size for audio slicing.
 * `audio.codec` - Audio codec (vorbis default).
 * `audio.sample-rate` - Audio sample rate (48000 default).
-* `resource_pack.url` - External host URL for packs (required when audio is enabled).
+* `resource_pack.url` - External host URL for packs when internal server is disabled.
 * `resource_pack.sha1` - Last generated pack SHA1.
+* `resource_pack.assets-hash` - Hash of current audio assets (used for rebuild detection).
+* `resource_pack.last-build` - Timestamp (ms) of last pack build.
+* `resource_pack.server.enabled` - Enable internal pack server.
+* `resource_pack.server.bind` - Bind address for internal pack server.
+* `resource_pack.server.port` - Bind port for internal pack server.
+* `resource_pack.server.public-url` - Public base URL override (reverse proxy/domain).
 * `advanced.delete-frames-on-loaded` - Legacy toggle, rarely needed.
 * `advanced.delete-video-on-loaded` - Legacy toggle, rarely needed.
 * `advanced.detect-duplicated-frames` - Experimental frame deduplication.
@@ -95,6 +110,8 @@ resource_pack:
 Screens store per-screen data in `screens/<uuid>/<uuid>.yml`, including:
 
 * `screen.scale-mode` - `FIT`, `FILL`, or `STRETCH` (default: `FIT`).
+* `screen.audio.radius` - Audio radius around the speaker location.
+* `screen.audio.speaker.*` - Speaker location (world/x/y/z). Defaults to screen center.
 
 ## Scaling modes
 
@@ -152,6 +169,13 @@ Notice that those integers represent the real location of the click according to
 
 In order to have audio, users must simply set their 'Server Resource Pack' to ```Prompt``` or ```Enabled```.
 Vanilla audio playback is **opt-in** and requires `audio.enabled: true` so MediaPlayer can generate resource packs.
-Audio also requires `resource_pack.url` to be configured (players must accept the server resource pack).
-If `resource_pack.url` is empty, MediaPlayer logs a warning and disables audio gracefully.
+Audio uses the internal pack server by default (`resource_pack.server.enabled: true`) and exposes the pack at `/pack.zip`.
+If the internal server is disabled, configure `resource_pack.url` to an externally hosted pack.
+If no pack URL is available, MediaPlayer logs a warning and disables audio gracefully.
 Large videos can bloat resource packs; prefer short clips or host packs externally.
+
+## Troubleshooting audio packs
+
+* If `/mp pack status` shows the server is not running, verify the bind/port settings and look for "port already in use" logs.
+* Behind a reverse proxy, set `resource_pack.server.public-url` so clients receive the correct URL.
+* If audio is disabled, pack commands still work but playback will skip audio.

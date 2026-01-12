@@ -4,111 +4,284 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
+import org.bukkit.command.CommandSender;
 
 import fr.xxathyx.mediaplayer.Main;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
 import fr.xxathyx.mediaplayer.media.MediaEntry;
+import fr.xxathyx.mediaplayer.resourcepack.EmbeddedPackServer;
 import fr.xxathyx.mediaplayer.resourcepack.ResourcePack;
-import fr.xxathyx.mediaplayer.server.Server;
+import fr.xxathyx.mediaplayer.util.Scheduler;
 
 public class AudioPackManager {
 
     private final Main plugin;
     private final Configuration configuration;
-    private final Map<String, Server> servers = new ConcurrentHashMap<>();
-    private boolean warnedMissingHostUrl = false;
+    private final Scheduler scheduler;
+    private final EmbeddedPackServer packServer;
+    private final Object buildLock = new Object();
+    private boolean warnedMissingPackUrl = false;
+
+    private final File packFolder;
+    private final File packFile;
 
     public AudioPackManager(Main plugin) {
         this.plugin = plugin;
         this.configuration = new Configuration();
+        this.scheduler = new Scheduler(plugin);
+        this.packFolder = new File(configuration.getResourcePackFolder(), "pack");
+        this.packFile = new File(configuration.getResourcePackFolder(), "pack.zip");
+        this.packServer = new EmbeddedPackServer(plugin, configuration, configuration.getResourcePackFolder());
+    }
+
+    public void startServer() {
+        packServer.start();
     }
 
     public AudioTrack prepare(MediaEntry entry, File mediaFile) throws IOException {
-        String host = configuration.resourcepack_host_url();
-        if (host == null || host.isBlank()) {
-            if (!warnedMissingHostUrl) {
-                plugin.getLogger().warning("[MediaPlayer]: audio enabled but no pack host-url configured");
-                warnedMissingHostUrl = true;
-            }
+        if (!configuration.audio_enabled()) {
             return null;
         }
-        File packFile = getPackFile(entry);
-        if (!packFile.exists() || entry.getAudioSha1() == null || entry.getAudioSha1().isEmpty()) {
-            buildPack(entry, mediaFile);
+        String packUrl = resolvePackUrl();
+        if (packUrl == null || packUrl.isBlank()) {
+            warnMissingPackUrl();
+            return null;
         }
+
+        boolean entryChanged = ensureAudioChunks(entry, mediaFile);
+        ensurePackReady(entryChanged);
 
         int chunkCount = entry.getAudioChunks();
         if (chunkCount <= 0) {
             chunkCount = countChunks(entry);
+            entry.setAudioChunks(chunkCount);
         }
 
-        byte[] sha1 = decodeSha1(entry.getAudioSha1());
-        String packUrl = resolvePackUrl(entry, packFile);
-        if (packUrl == null || packUrl.isBlank()) {
-            return null;
-        }
+        byte[] sha1 = decodeSha1(configuration.resourcepack_sha1());
         return new AudioTrack(entry.getId(), chunkCount, configuration.audio_chunk_seconds(), packUrl, sha1);
     }
 
+    public void rebuildPackAsync(CommandSender sender) {
+        scheduler.runAsync(() -> {
+            try {
+                ensurePackReady(true);
+                String sha1 = configuration.resourcepack_sha1();
+                String url = resolvePackUrl();
+                scheduler.runSync(() -> sender.sendMessage("Resource pack rebuilt. URL: " + (url == null ? "n/a" : url) + " SHA1: " + sha1));
+            } catch (IOException e) {
+                scheduler.runSync(() -> sender.sendMessage("Failed to rebuild resource pack: " + e.getMessage()));
+            }
+        });
+    }
+
     public void stopAll() {
-        for (Server server : servers.values()) {
-            server.stop();
+        packServer.stop();
+    }
+
+    public boolean isServerRunning() {
+        return packServer.isRunning();
+    }
+
+    public String getServerError() {
+        return packServer.getLastError();
+    }
+
+    public String getPackUrl() {
+        return resolvePackUrl();
+    }
+
+    public String getPackSha1() {
+        return configuration.resourcepack_sha1();
+    }
+
+    public long getLastBuildMillis() {
+        return configuration.resourcepack_last_build();
+    }
+
+    public String getPackAssetsHash() {
+        return configuration.resourcepack_assets_hash();
+    }
+
+    public EmbeddedPackServer getPackServer() {
+        return packServer;
+    }
+
+    private void warnMissingPackUrl() {
+        if (!warnedMissingPackUrl) {
+            plugin.getLogger().warning("[MediaPlayer]: audio enabled but no pack URL configured (enable internal server or set resource_pack.url).");
+            warnedMissingPackUrl = true;
         }
-        servers.clear();
     }
 
-    private File getPackFolder(MediaEntry entry) {
-        return new File(configuration.getResourcePackFolder(), entry.getId());
+    private void ensurePackReady(boolean force) throws IOException {
+        synchronized (buildLock) {
+            String assetsHash = computeAssetsHash();
+            boolean missing = !packFile.exists();
+            boolean dirty = force || missing || !assetsHash.equals(configuration.resourcepack_assets_hash());
+            if (!dirty) {
+                return;
+            }
+            buildPack(assetsHash);
+        }
     }
 
-    private File getPackFile(MediaEntry entry) {
-        return new File(configuration.getResourcePackFolder(), entry.getId() + ".zip");
+    private boolean ensureAudioChunks(MediaEntry entry, File mediaFile) throws IOException {
+        File chunkFolder = getAudioChunksFolder(entry);
+        File[] chunks = chunkFolder.listFiles((dir, name) -> name.endsWith(".ogg"));
+        boolean missing = chunks == null || chunks.length == 0;
+        if (missing) {
+            if (chunkFolder.exists()) {
+                FileUtils.deleteDirectory(chunkFolder);
+            }
+            chunkFolder.mkdirs();
+            extractChunks(mediaFile, chunkFolder);
+        }
+
+        String signature = computeChunkSignature(chunkFolder);
+        boolean changed = signature != null && !signature.equals(entry.getAudioSha1());
+        if (signature != null) {
+            entry.setAudioSha1(signature);
+        }
+
+        int count = countChunks(entry);
+        entry.setAudioChunks(count);
+        return missing || changed;
     }
 
     private File getAudioChunksFolder(MediaEntry entry) {
         return new File(configuration.getAudioChunksFolder(), entry.getId());
     }
 
-    private void buildPack(MediaEntry entry, File mediaFile) throws IOException {
-        File chunkFolder = getAudioChunksFolder(entry);
-        if (chunkFolder.exists()) {
-            FileUtils.deleteDirectory(chunkFolder);
-        }
-        chunkFolder.mkdirs();
-
-        extractChunks(mediaFile, chunkFolder);
-
-        File packFolder = getPackFolder(entry);
+    private void buildPack(String assetsHash) throws IOException {
         if (packFolder.exists()) {
             FileUtils.deleteDirectory(packFolder);
         }
         packFolder.mkdirs();
 
-        createPackMetadata(packFolder, entry);
-        copyChunksToPack(chunkFolder, packFolder, entry);
-        int chunks = writeSoundsJson(packFolder, entry);
+        createPackMetadata(packFolder);
+        Map<String, Object> soundsMap = new HashMap<>();
+        copyChunksToPack(packFolder, soundsMap);
+        writeSoundsJson(packFolder, soundsMap);
 
-        File tempZip = new File(configuration.getResourcePackFolder(), entry.getId() + ".zip.tmp");
-        File finalZip = getPackFile(entry);
+        File tempZip = new File(configuration.getResourcePackFolder(), "pack.zip.tmp");
         dev.jeka.core.api.file.JkPathTree.of(packFolder.toPath()).zipTo(tempZip.toPath());
-        Files.move(tempZip.toPath(), finalZip.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        Files.move(tempZip.toPath(), packFile.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 
-        String sha1 = computeSha1(finalZip);
-        entry.setAudioSha1(sha1);
-        entry.setAudioChunks(chunks);
+        String sha1 = computeSha1(packFile);
         configuration.set_resourcepack_sha1(sha1);
+        configuration.set_resourcepack_assets_hash(assetsHash);
+        configuration.set_resourcepack_last_build(System.currentTimeMillis());
+
+        String url = resolvePackUrl();
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(configuration.resourcepack_last_build()));
+        plugin.getLogger().info("[MediaPlayer]: Resource pack built at " + timestamp + " (SHA1: " + sha1 + ", url: " + (url == null ? "n/a" : url) + ").");
+    }
+
+    private void createPackMetadata(File packFolder) throws IOException {
+        File metaFile = new File(packFolder, "pack.mcmeta");
+        Map<String, Object> pack = new HashMap<>();
+        pack.put("pack_format", new ResourcePack().getResourcePackFormat());
+        pack.put("description", "MediaPlayer audio pack");
+
+        Map<String, Object> root = new HashMap<>();
+        root.put("pack", pack);
+
+        try (Writer writer = new FileWriter(metaFile)) {
+            new Gson().toJson(root, writer);
+        }
+
+        File iconFile = new File(packFolder, "pack.png");
+        try {
+            java.net.URL packUrl = Main.class.getResource("resources/audio.png");
+            java.awt.image.BufferedImage buffered = packUrl == null
+                    ? new java.awt.image.BufferedImage(128, 128, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+                    : javax.imageio.ImageIO.read(packUrl);
+            javax.imageio.ImageIO.write(buffered, "png", iconFile);
+        } catch (IOException e) {
+            javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(128, 128, java.awt.image.BufferedImage.TYPE_INT_ARGB), "png", iconFile);
+        }
+    }
+
+    private void copyChunksToPack(File packFolder, Map<String, Object> soundsMap) throws IOException {
+        File chunkRoot = configuration.getAudioChunksFolder();
+        File[] entries = chunkRoot.listFiles(File::isDirectory);
+        if (entries == null) {
+            return;
+        }
+        Arrays.sort(entries, Comparator.comparing(File::getName));
+        File soundsDir = new File(packFolder, "assets/mediaplayer/sounds");
+        soundsDir.mkdirs();
+
+        for (File entryFolder : entries) {
+            File[] chunks = entryFolder.listFiles((dir, name) -> name.endsWith(".ogg"));
+            if (chunks == null) {
+                continue;
+            }
+            Arrays.sort(chunks, Comparator.comparing(File::getName));
+            File entryTarget = new File(soundsDir, entryFolder.getName());
+            entryTarget.mkdirs();
+
+            for (File chunk : chunks) {
+                Files.copy(chunk.toPath(), new File(entryTarget, chunk.getName()).toPath(), StandardCopyOption.REPLACE_EXISTING);
+                String chunkName = chunk.getName().replace(".ogg", "");
+                Map<String, Object> soundDef = new HashMap<>();
+                List<String> sounds = new ArrayList<>();
+                sounds.add("mediaplayer:" + entryFolder.getName() + "/" + chunkName);
+                soundDef.put("sounds", sounds);
+                soundsMap.put("mediaplayer." + entryFolder.getName() + "." + chunkName, soundDef);
+            }
+        }
+    }
+
+    private void writeSoundsJson(File packFolder, Map<String, Object> soundsMap) throws IOException {
+        File soundsJson = new File(packFolder, "assets/mediaplayer/sounds.json");
+        soundsJson.getParentFile().mkdirs();
+        try (Writer writer = new FileWriter(soundsJson)) {
+            new Gson().toJson(soundsMap, writer);
+        }
+    }
+
+    private String resolvePackUrl() {
+        String baseUrl = resolvePackBaseUrl();
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return null;
+        }
+        if (!baseUrl.endsWith("/")) {
+            baseUrl += "/";
+        }
+        return baseUrl + "pack.zip";
+    }
+
+    private String resolvePackBaseUrl() {
+        if (configuration.resourcepack_server_enabled()) {
+            if (!packServer.isRunning()) {
+                packServer.start();
+            }
+            if (packServer.isRunning()) {
+                return packServer.getPublicBaseUrl();
+            }
+        }
+        String host = configuration.resourcepack_host_url();
+        if (host != null && !host.isBlank()) {
+            return host.endsWith("/") ? host.substring(0, host.length() - 1) : host;
+        }
+        return null;
     }
 
     private void extractChunks(File mediaFile, File chunkFolder) throws IOException {
@@ -140,109 +313,72 @@ public class AudioPackManager {
         }
     }
 
-    private void createPackMetadata(File packFolder, MediaEntry entry) throws IOException {
-        File metaFile = new File(packFolder, "pack.mcmeta");
-        Map<String, Object> pack = new HashMap<>();
-        pack.put("pack_format", new ResourcePack().getResourcePackFormat());
-        pack.put("description", "MediaPlayer audio for " + entry.getName());
-
-        Map<String, Object> root = new HashMap<>();
-        root.put("pack", pack);
-
-        try (Writer writer = new FileWriter(metaFile)) {
-            new Gson().toJson(root, writer);
-        }
-
-        File iconFile = new File(packFolder, "pack.png");
-        try {
-            java.net.URL packUrl = Main.class.getResource("resources/audio.png");
-            java.awt.image.BufferedImage buffered = packUrl == null
-                    ? new java.awt.image.BufferedImage(128, 128, java.awt.image.BufferedImage.TYPE_INT_ARGB)
-                    : javax.imageio.ImageIO.read(packUrl);
-            javax.imageio.ImageIO.write(buffered, "png", iconFile);
-        } catch (IOException e) {
-            javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(128, 128, java.awt.image.BufferedImage.TYPE_INT_ARGB), "png", iconFile);
-        }
-    }
-
-    private void copyChunksToPack(File chunkFolder, File packFolder, MediaEntry entry) throws IOException {
-        File soundsDir = new File(packFolder, "assets/mediaplayer/sounds/" + entry.getId());
-        soundsDir.mkdirs();
-        File[] chunks = chunkFolder.listFiles((dir, name) -> name.endsWith(".ogg"));
-        if (chunks == null) {
-            return;
-        }
-        for (File chunk : chunks) {
-            Files.copy(chunk.toPath(), new File(soundsDir, chunk.getName()).toPath(), StandardCopyOption.REPLACE_EXISTING);
-        }
-    }
-
-    private int writeSoundsJson(File packFolder, MediaEntry entry) throws IOException {
-        File soundsJson = new File(packFolder, "assets/mediaplayer/sounds.json");
-        File chunkFolder = getAudioChunksFolder(entry);
-        File[] chunks = chunkFolder.listFiles((dir, name) -> name.endsWith(".ogg"));
-        if (chunks == null) {
-            return 0;
-        }
-
-        Map<String, Object> soundsMap = new HashMap<>();
-        int count = 0;
-
-        for (File chunk : chunks) {
-            String chunkName = chunk.getName().replace(".ogg", "");
-            Map<String, Object> soundDef = new HashMap<>();
-            List<String> sounds = new ArrayList<>();
-            sounds.add("mediaplayer:" + entry.getId() + "/" + chunkName);
-            soundDef.put("sounds", sounds);
-            soundsMap.put("mediaplayer." + entry.getId() + "." + chunkName, soundDef);
-            count++;
-        }
-
-        try (Writer writer = new FileWriter(soundsJson)) {
-            new Gson().toJson(soundsMap, writer);
-        }
-
-        return count;
-    }
-
     private int countChunks(MediaEntry entry) {
         File chunkFolder = getAudioChunksFolder(entry);
         File[] chunks = chunkFolder.listFiles((dir, name) -> name.endsWith(".ogg"));
         return chunks == null ? 0 : chunks.length;
     }
 
-    private String resolvePackUrl(MediaEntry entry, File packFile) {
-        String host = configuration.resourcepack_host_url();
-        if (host != null && !host.isBlank()) {
-            String url = host;
-            if (url.contains("%media%")) {
-                url = url.replace("%media%", entry.getId());
-            } else if (url.contains("%name%")) {
-                url = url.replace("%name%", entry.getName());
-            } else {
-                if (!url.endsWith("/")) {
-                    url += "/";
-                }
-                url += entry.getId() + ".zip";
-            }
-            return url;
+    private String computeAssetsHash() throws IOException {
+        MessageDigest digest = getSha1Digest();
+        File chunkRoot = configuration.getAudioChunksFolder();
+        File[] entries = chunkRoot.listFiles(File::isDirectory);
+        if (entries == null) {
+            return "";
         }
-        return null;
+        Arrays.sort(entries, Comparator.comparing(File::getName));
+        for (File entryFolder : entries) {
+            digest.update(entryFolder.getName().getBytes(StandardCharsets.UTF_8));
+            File[] chunks = entryFolder.listFiles((dir, name) -> name.endsWith(".ogg"));
+            if (chunks == null) {
+                continue;
+            }
+            Arrays.sort(chunks, Comparator.comparing(File::getName));
+            for (File chunk : chunks) {
+                digest.update(chunk.getName().getBytes(StandardCharsets.UTF_8));
+                digest.update(Long.toString(chunk.length()).getBytes(StandardCharsets.UTF_8));
+                digest.update(Long.toString(chunk.lastModified()).getBytes(StandardCharsets.UTF_8));
+            }
+        }
+        return toHex(digest.digest());
     }
 
-    private String computeSha1(File file) throws IOException {
+    private String computeChunkSignature(File chunkFolder) throws IOException {
+        MessageDigest digest = getSha1Digest();
+        File[] chunks = chunkFolder.listFiles((dir, name) -> name.endsWith(".ogg"));
+        if (chunks == null) {
+            return "";
+        }
+        Arrays.sort(chunks, Comparator.comparing(File::getName));
+        for (File chunk : chunks) {
+            digest.update(chunk.getName().getBytes(StandardCharsets.UTF_8));
+            digest.update(Long.toString(chunk.length()).getBytes(StandardCharsets.UTF_8));
+            digest.update(Long.toString(chunk.lastModified()).getBytes(StandardCharsets.UTF_8));
+        }
+        return toHex(digest.digest());
+    }
+
+    private MessageDigest getSha1Digest() throws IOException {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            byte[] data = Files.readAllBytes(file.toPath());
-            byte[] hashed = digest.digest(data);
-            StringBuilder builder = new StringBuilder();
-            for (byte b : hashed) {
-                builder.append(String.format("%02x", b));
-            }
-            return builder.toString();
+            return MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException e) {
             throw new IOException("SHA-1 not available.", e);
         }
+    }
+
+    private String computeSha1(File file) throws IOException {
+        MessageDigest digest = getSha1Digest();
+        byte[] data = Files.readAllBytes(file.toPath());
+        byte[] hashed = digest.digest(data);
+        return toHex(hashed);
+    }
+
+    private String toHex(byte[] hashed) {
+        StringBuilder builder = new StringBuilder();
+        for (byte b : hashed) {
+            builder.append(String.format("%02x", b));
+        }
+        return builder.toString();
     }
 
     private byte[] decodeSha1(String sha1) {

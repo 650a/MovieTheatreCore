@@ -8,6 +8,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -18,13 +19,15 @@ public class AudioPlayback {
     private final Scheduler scheduler;
     private final AudioTrack track;
     private final Supplier<Set<UUID>> viewersSupplier;
+    private final Supplier<Location> speakerSupplier;
     private final BooleanSupplier activeSupplier;
     private final List<BukkitTask> tasks = new ArrayList<>();
 
-    public AudioPlayback(Scheduler scheduler, AudioTrack track, Supplier<Set<UUID>> viewersSupplier, BooleanSupplier activeSupplier) {
+    public AudioPlayback(Scheduler scheduler, AudioTrack track, Supplier<Set<UUID>> viewersSupplier, Supplier<Location> speakerSupplier, BooleanSupplier activeSupplier) {
         this.scheduler = scheduler;
         this.track = track;
         this.viewersSupplier = viewersSupplier;
+        this.speakerSupplier = speakerSupplier;
         this.activeSupplier = activeSupplier;
     }
 
@@ -53,10 +56,12 @@ public class AudioPlayback {
         }
         String chunkName = String.format("chunk_%03d", index);
         String soundKey = "mediaplayer." + track.getMediaId() + "." + chunkName;
+        Location speakerLocation = speakerSupplier.get();
         for (UUID uuid : viewersSupplier.get()) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null && player.isOnline()) {
-                player.playSound(player.getLocation(), soundKey, 10f, 1f);
+                Location source = speakerLocation == null ? player.getLocation() : speakerLocation;
+                player.playSound(source, soundKey, 10f, 1f);
             }
         }
     }

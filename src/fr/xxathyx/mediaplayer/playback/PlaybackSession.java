@@ -55,6 +55,7 @@ public class PlaybackSession {
     private final Set<BukkitTask> renderTasks = ConcurrentHashMap.newKeySet();
 
     private final Set<UUID> viewers = new HashSet<>();
+    private final Set<UUID> audioListeners = new HashSet<>();
 
     private BukkitTask tickTask;
     private boolean paused = false;
@@ -106,7 +107,7 @@ public class PlaybackSession {
         tickTask = scheduler.runSyncRepeating(this::tick, 0L, 1L);
 
         if (audioTrack != null) {
-            audioPlayback = new AudioPlayback(scheduler, audioTrack, this::getViewerSnapshot, () -> active);
+            audioPlayback = new AudioPlayback(scheduler, audioTrack, this::getAudioListenerSnapshot, this::getAudioSpeakerLocation, () -> active);
             audioPlayback.start();
         }
     }
@@ -149,7 +150,7 @@ public class PlaybackSession {
         }
 
         if (video.isAudioEnabled() && options.allowAudio()) {
-            for (UUID uuid : viewers) {
+            for (UUID uuid : audioListeners) {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player != null) {
                     for (int i = 0; i < video.getAudioChannels(); i++) {
@@ -174,6 +175,7 @@ public class PlaybackSession {
         }
 
         viewers.clear();
+        audioListeners.clear();
         state = PlaybackState.IDLE;
         stopping.set(false);
     }
@@ -184,6 +186,7 @@ public class PlaybackSession {
         }
 
         updateViewers();
+        updateAudioListeners();
 
         long now = System.nanoTime();
         if (now - lastFrameNanos < frameDurationNanos) {
@@ -297,9 +300,7 @@ public class PlaybackSession {
                 Player player = (Player) entity;
                 if (player.isOnline()) {
                     seen.add(player.getUniqueId());
-                    if (!viewers.contains(player.getUniqueId())) {
-                        handleViewerJoin(player);
-                    }
+                    viewers.add(player.getUniqueId());
                 }
             }
         }
@@ -307,8 +308,33 @@ public class PlaybackSession {
         viewers.retainAll(seen);
     }
 
-    private void handleViewerJoin(Player player) {
-        viewers.add(player.getUniqueId());
+    private void updateAudioListeners() {
+        Location speaker = getAudioSpeakerLocation();
+        if (speaker == null || speaker.getWorld() == null) {
+            audioListeners.clear();
+            return;
+        }
+
+        int radius = screen.getAudioRadius();
+        Set<UUID> seen = new HashSet<>();
+
+        for (Entity entity : getNearbyEntities(speaker, radius)) {
+            if (entity.getType() == EntityType.PLAYER) {
+                Player player = (Player) entity;
+                if (player.isOnline() && player.getWorld().equals(speaker.getWorld())) {
+                    seen.add(player.getUniqueId());
+                    if (!audioListeners.contains(player.getUniqueId())) {
+                        handleAudioListenerJoin(player);
+                    }
+                }
+            }
+        }
+
+        audioListeners.retainAll(seen);
+    }
+
+    private void handleAudioListenerJoin(Player player) {
+        audioListeners.add(player.getUniqueId());
         if (options.allowAudio()) {
             if (audioTrack != null) {
                 sendResourcePack(player, audioTrack.getPackUrl(), audioTrack.getPackSha1());
@@ -363,8 +389,12 @@ public class PlaybackSession {
         }
     }
 
-    private Set<UUID> getViewerSnapshot() {
-        return new HashSet<>(viewers);
+    private Set<UUID> getAudioListenerSnapshot() {
+        return new HashSet<>(audioListeners);
+    }
+
+    private Location getAudioSpeakerLocation() {
+        return screen.getAudioSpeakerLocation();
     }
 
     private List<Entity> getNearbyEntities(Location location, int radius) {

@@ -272,10 +272,32 @@ public class Screen {
 			blocks.clear();
 			for(ItemFrame frame : frames) blocks.add(frame.getLocation().getBlock().getRelative(frame.getAttachedFace()).getLocation().getBlock());
 		}
+
+		Location speaker = frames.isEmpty() ? location : frames.get(frames.size() / 2).getLocation();
+		setAudioDefaults(speaker);
 		
 		for(int i = 0; i < blocks.size(); i++) new Part(new File(getPartsFolder(), i + ".yml")).createConfiguration(uuid, blocks.get(i), frames.get(i), configuration.glowing_screen_frames_support(), configuration.visible_screen_frames_support(), i);
 		createThumbnail();
 		for(int i = 0; i < getFrames().size(); i++) getFrames().get(i).setItem(new ItemStacks().getMap(getIds()[i]));
+	}
+
+	private void setAudioDefaults(Location speaker) {
+		fileconfiguration = new YamlConfiguration();
+		try {
+			fileconfiguration.load(file);
+			if(!fileconfiguration.contains("screen.audio.radius")) {
+				fileconfiguration.set("screen.audio.radius", configuration.maximum_distance_to_receive());
+			}
+			if(!fileconfiguration.contains("screen.audio.speaker.world")) {
+				fileconfiguration.set("screen.audio.speaker.world", speaker.getWorld() == null ? "world" : speaker.getWorld().getName());
+				fileconfiguration.set("screen.audio.speaker.x", speaker.getX());
+				fileconfiguration.set("screen.audio.speaker.y", speaker.getY());
+				fileconfiguration.set("screen.audio.speaker.z", speaker.getZ());
+			}
+			fileconfiguration.save(file);
+		}catch (IOException | InvalidConfigurationException e) {
+			e.printStackTrace();
+		}
 	}
 	
     /**
@@ -460,6 +482,32 @@ public class Screen {
 		int z = getConfigFile().getInt("screen.location.z");
 		
 		return new Location(world, x, y, z);
+	}
+
+	public int getAudioRadius() {
+		int radius = getConfigFile().getInt("screen.audio.radius", 0);
+		if(radius <= 0) {
+			return configuration.maximum_distance_to_receive();
+		}
+		return radius;
+	}
+
+	public Location getAudioSpeakerLocation() {
+		FileConfiguration config = getConfigFile();
+		if(config.contains("screen.audio.speaker.world")) {
+			World world = Bukkit.getWorld(config.getString("screen.audio.speaker.world"));
+			double x = config.getDouble("screen.audio.speaker.x");
+			double y = config.getDouble("screen.audio.speaker.y");
+			double z = config.getDouble("screen.audio.speaker.z");
+			if(world != null) {
+				return new Location(world, x, y, z);
+			}
+		}
+		List<ItemFrame> frames = getFrames();
+		if(!frames.isEmpty()) {
+			return frames.get(frames.size() / 2).getLocation();
+		}
+		return getLocation();
 	}
 	
 	/**

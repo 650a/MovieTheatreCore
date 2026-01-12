@@ -273,6 +273,7 @@ public class Main extends JavaPlugin implements Listener {
 	        playbackManager = new PlaybackManager(this, screenManager);
 	        mediaLibrary = new MediaLibrary(this);
 	        audioPackManager = new AudioPackManager(this);
+	        audioPackManager.startServer();
 	        mediaManager = new MediaManager(this, mediaLibrary, audioPackManager);
 
 	        MediaPlayerCommands mediaPlayerCommands = new MediaPlayerCommands(this);
@@ -587,6 +588,10 @@ public class Main extends JavaPlugin implements Listener {
 
 	public PlaybackManager getPlaybackManager() {
 		return playbackManager;
+	}
+
+	public AudioPackManager getAudioPackManager() {
+		return audioPackManager;
 	}
 
 	public MediaManager getMediaManager() {
