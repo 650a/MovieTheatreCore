@@ -12,7 +12,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import fr.xxathyx.mediaplayer.Main;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
-import fr.xxathyx.mediaplayer.ffmpeg.Ffprobe;
 import fr.xxathyx.mediaplayer.group.Group;
 import fr.xxathyx.mediaplayer.notification.Notification;
 import fr.xxathyx.mediaplayer.notification.NotificationType;
@@ -39,8 +38,6 @@ public class TaskAsyncLoadConfigurations extends BukkitRunnable {
 	private final Main plugin = Main.getPlugin(Main.class);
 	private final Configuration configuration = new Configuration();
 	
-	private final Ffprobe ffprobe = new Ffprobe();
-	
 	/**
 	* Runs a task that will load and register videos contained in {@link Configuration#getVideosFolder()}
 	* to {@link Main#getRegisteredVideos()}.
@@ -48,11 +45,6 @@ public class TaskAsyncLoadConfigurations extends BukkitRunnable {
 	
 	@Override
 	public void run() {
-		
-		if(!ffprobe.isInstalled()) {
-	        Bukkit.getLogger().warning("[MediaPlayer]: " + configuration.libraries_not_installed());
-			return;
-		}
 		
 		plugin.getTasks().add(getTaskId());
 		
@@ -68,11 +60,8 @@ public class TaskAsyncLoadConfigurations extends BukkitRunnable {
 				
 				if(Format.getCompatibleFormats().contains(FilenameUtils.getExtension(file.getName()))) {
 					if(!videoConfiguration.exists()) {
-						try {
-							new Video(videoConfiguration).createConfiguration(file);
-						}catch (IOException | IllegalArgumentException | InvalidConfigurationException e) {
-							e.printStackTrace();
-						}
+						Bukkit.getLogger().warning("[MediaPlayer]: Missing video configuration for " + file.getName() + ". Skipping until metadata is generated.");
+						continue;
 					}
 					
 					Video video = new Video(videoConfiguration);

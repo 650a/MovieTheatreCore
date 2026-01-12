@@ -5,8 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DecimalFormat;
@@ -14,8 +12,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.UUID;
 
 import javax.imageio.ImageIO;
@@ -32,6 +28,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import fr.xxathyx.mediaplayer.Main;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
+import fr.xxathyx.mediaplayer.ffmpeg.FFprobeService;
 import fr.xxathyx.mediaplayer.interfaces.Interfaces;
 import fr.xxathyx.mediaplayer.source.Source;
 import fr.xxathyx.mediaplayer.stream.m3u8.Reader;
@@ -67,6 +64,7 @@ public class Video {
 	
 	private final Configuration configuration = new Configuration();
 	private final DecimalFormat decimalFormat = new DecimalFormat("#.##");
+	private final FFprobeService ffprobeService = new FFprobeService();
 	
 	private File file;
 	private Source source;
@@ -892,139 +890,25 @@ public class Video {
 		try {
 			return countAudioStreams(getVideoFile()) > 0;
 		}catch (IOException e) {
-			e.printStackTrace();
+			Bukkit.getLogger().warning("[MediaPlayer]: " + e.getMessage());
 		}
 		return false;
 	}
 
 	private ProbeResult probeVideo(File target) throws IOException {
-		ProbeResult result = new ProbeResult();
-		Map<String, String> streamValues = parseKeyValueOutput(runFfprobe(
-				"-v", "error",
-				"-select_streams", "v:0",
-				"-show_entries", "stream=width,height,r_frame_rate,nb_frames,duration",
-				"-of", "default=noprint_wrappers=1",
-				target.getAbsolutePath()));
-
-		result.width = parseInt(streamValues.get("width"));
-		result.height = parseInt(streamValues.get("height"));
-		result.framerate = parseFraction(streamValues.get("r_frame_rate"));
-		result.frames = parseInt(streamValues.get("nb_frames"));
-
-		Double streamDuration = parseDouble(streamValues.get("duration"));
-		Double formatDuration = parseDouble(getSingleOutput(runFfprobe(
-				"-v", "error",
-				"-show_entries", "format=duration",
-				"-of", "default=nk=1:nw=1",
-				target.getAbsolutePath())));
-
-		if(formatDuration != null && formatDuration > 0) {
-			result.duration = formatDuration;
-		}else if(streamDuration != null) {
-			result.duration = streamDuration;
-		}
-
-		result.audioStreams = countAudioStreams(target);
-		return result;
+		FFprobeService.ProbeResult result = ffprobeService.probe(target);
+		ProbeResult probeResult = new ProbeResult();
+		probeResult.width = result.width;
+		probeResult.height = result.height;
+		probeResult.framerate = result.framerate;
+		probeResult.duration = result.duration;
+		probeResult.frames = result.frames;
+		probeResult.audioStreams = result.audioStreams;
+		return probeResult;
 	}
 
 	private int countAudioStreams(File target) throws IOException {
-		List<String> lines = runFfprobe(
-				"-v", "error",
-				"-select_streams", "a",
-				"-show_entries", "stream=index",
-				"-of", "csv=p=0",
-				target.getAbsolutePath());
-		return lines.size();
-	}
-
-	private List<String> runFfprobe(String... args) throws IOException {
-		List<String> command = new ArrayList<>();
-		command.add(FilenameUtils.separatorsToUnix(plugin.getFfprobe().getLibraryFile().getAbsolutePath()));
-		command.addAll(Arrays.asList(args));
-
-		ProcessBuilder processBuilder = new ProcessBuilder(command);
-		processBuilder.redirectErrorStream(true);
-		Process process = processBuilder.start();
-
-		List<String> output = new ArrayList<>();
-		try(BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-			String line;
-			while((line = reader.readLine()) != null) {
-				if(!line.isBlank()) {
-					output.add(line.trim());
-				}
-			}
-		}
-
-		try {
-			process.waitFor();
-		}catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new IOException("ffprobe interrupted", e);
-		}
-		return output;
-	}
-
-	private Map<String, String> parseKeyValueOutput(List<String> lines) {
-		Map<String, String> values = new HashMap<>();
-		for(String line : lines) {
-			int splitIndex = line.indexOf('=');
-			if(splitIndex > 0 && splitIndex < line.length() - 1) {
-				values.put(line.substring(0, splitIndex), line.substring(splitIndex + 1));
-			}
-		}
-		return values;
-	}
-
-	private String getSingleOutput(List<String> lines) {
-		if(lines.isEmpty()) {
-			return null;
-		}
-		return lines.get(0);
-	}
-
-	private double parseFraction(String value) {
-		if(value == null || value.isBlank()) {
-			return 0;
-		}
-		if(value.contains("/")) {
-			String[] parts = value.split("/", 2);
-			double numerator = parseDoubleOrZero(parts[0]);
-			double denominator = parseDoubleOrZero(parts[1]);
-			if(denominator == 0) {
-				return 0;
-			}
-			return numerator / denominator;
-		}
-		return parseDoubleOrZero(value);
-	}
-
-	private double parseDoubleOrZero(String value) {
-		Double parsed = parseDouble(value);
-		return parsed == null ? 0 : parsed;
-	}
-
-	private Double parseDouble(String value) {
-		if(value == null || value.isBlank()) {
-			return null;
-		}
-		try {
-			return Double.parseDouble(value.trim());
-		}catch (NumberFormatException e) {
-			return null;
-		}
-	}
-
-	private int parseInt(String value) {
-		if(value == null || value.isBlank()) {
-			return 0;
-		}
-		try {
-			return Integer.parseInt(value.trim());
-		}catch (NumberFormatException e) {
-			return 0;
-		}
+		return ffprobeService.probe(target).audioStreams;
 	}
 
 	private static class ProbeResult {
