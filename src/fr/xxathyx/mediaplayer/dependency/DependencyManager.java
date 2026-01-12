@@ -351,6 +351,8 @@ public class DependencyManager {
                 case DENO -> downloadDeno();
             };
         } catch (IOException e) {
+            Bukkit.getLogger().warning("[MediaPlayer]: Failed to prepare " + type.commandName()
+                    + " binary (no URL available): " + e.getMessage());
             return new ResolvedBinary(type, null, null, null, false, "Download failed: " + e.getMessage());
         }
     }
@@ -375,9 +377,14 @@ public class DependencyManager {
             fileName = "yt-dlp";
         }
         Path target = cacheDir.resolve(fileName);
-        downloadFile(url, target);
-        makeExecutable(target);
-        return validateAndStage(BinaryType.YT_DLP, target);
+        try {
+            downloadFile(url, target);
+            makeExecutable(target);
+            return validateAndStage(BinaryType.YT_DLP, target);
+        } catch (IOException e) {
+            logDownloadFailure(BinaryType.YT_DLP, url, e);
+            return new ResolvedBinary(BinaryType.YT_DLP, null, null, null, false, "Download failed: " + e.getMessage());
+        }
     }
 
     private ResolvedBinary downloadDeno() throws IOException {
@@ -392,11 +399,16 @@ public class DependencyManager {
             url = "https://github.com/denoland/deno/releases/latest/download/deno-" + ("aarch64".equals(arch) ? "aarch64" : "x86_64") + "-unknown-linux-gnu.zip";
         }
         Path archive = cacheDir.resolve("deno.zip");
-        downloadFile(url, archive);
-        extractZip(archive, cacheDir, new BundleSpec(new BundleFile("deno", binaryFileName(BinaryType.DENO))));
-        Path binary = cacheDir.resolve(binaryFileName(BinaryType.DENO));
-        makeExecutable(binary);
-        return validateAndStage(BinaryType.DENO, binary);
+        try {
+            downloadFile(url, archive);
+            extractZip(archive, cacheDir, new BundleSpec(new BundleFile("deno", binaryFileName(BinaryType.DENO))));
+            Path binary = cacheDir.resolve(binaryFileName(BinaryType.DENO));
+            makeExecutable(binary);
+            return validateAndStage(BinaryType.DENO, binary);
+        } catch (IOException e) {
+            logDownloadFailure(BinaryType.DENO, url, e);
+            return new ResolvedBinary(BinaryType.DENO, null, null, null, false, "Download failed: " + e.getMessage());
+        }
     }
 
     private String probeVersion(Path executable, BinaryType type) {
@@ -659,11 +671,16 @@ public class DependencyManager {
             return new ResolvedBinary(type, null, null, null, false, "Unsupported OS/arch for ffmpeg bundle");
         }
         Path archivePath = cacheDir.resolve("ffmpeg-" + bundle.archiveSuffix);
-        downloadFile(bundle.url, archivePath);
-        if (bundle.format == ArchiveFormat.TAR_XZ) {
-            extractTarXz(archivePath, cacheDir, bundle.bundle);
-        } else {
-            extractZip(archivePath, cacheDir, bundle.bundle);
+        try {
+            downloadFile(bundle.url, archivePath);
+            if (bundle.format == ArchiveFormat.TAR_XZ) {
+                extractTarXz(archivePath, cacheDir, bundle.bundle);
+            } else {
+                extractZip(archivePath, cacheDir, bundle.bundle);
+            }
+        } catch (IOException e) {
+            logDownloadFailure(type, bundle.url, e);
+            return new ResolvedBinary(type, null, null, null, false, "Download failed: " + e.getMessage());
         }
         Path binary = cacheDir.resolve(binaryFileName(type));
         if (!Files.exists(binary)) {
@@ -671,5 +688,10 @@ public class DependencyManager {
         }
         makeExecutable(binary);
         return validateAndStage(type, binary);
+    }
+
+    private void logDownloadFailure(BinaryType type, String url, IOException error) {
+        Bukkit.getLogger().warning("[MediaPlayer]: Failed to download/extract " + type.commandName()
+                + " from " + url + " (" + error.getMessage() + "). Feature will be disabled.");
     }
 }
