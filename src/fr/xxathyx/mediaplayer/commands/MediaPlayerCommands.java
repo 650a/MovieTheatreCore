@@ -372,8 +372,8 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                             int index = 1;
                             for (ShowScheduleEntry entry : entries) {
                                 String nextRun = entry.getNextRun() == null ? "n/a" : entry.getNextRun().format(ShowScheduleEntry.FORMATTER);
-                                sender.sendMessage(ChatColor.GRAY + index + ") " + entry.getMediaId() + " at " + nextRun
-                                        + " (" + entry.getRepeat().name().toLowerCase(Locale.ROOT) + ", enabled=" + entry.isEnabled() + ", id=" + entry.getId() + ")");
+                            sender.sendMessage(ChatColor.GRAY + "" + index + ") " + entry.getMediaId() + " at " + nextRun
+                                    + " (" + entry.getRepeat().name().toLowerCase(Locale.ROOT) + ", enabled=" + entry.isEnabled() + ", id=" + entry.getId() + ")");
                                 index++;
                             }
                             return true;
