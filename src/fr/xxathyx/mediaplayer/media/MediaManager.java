@@ -257,14 +257,44 @@ public class MediaManager {
             return null;
         }
         try {
-            Process process = new ProcessBuilder(resolver.getAbsolutePath(), "-f", "best", "-g", url).start();
+            List<String> command = new java.util.ArrayList<>();
+            command.add(resolver.getAbsolutePath());
+            String cookiesPath = configuration.media_youtube_cookies_path();
+            if (cookiesPath != null && !cookiesPath.isBlank()) {
+                File cookiesFile = new File(cookiesPath);
+                if (cookiesFile.exists()) {
+                    command.add("--cookies");
+                    command.add(cookiesFile.getAbsolutePath());
+                }
+            }
+            List<String> extraArgs = configuration.media_youtube_extra_args();
+            if (extraArgs != null && !extraArgs.isEmpty()) {
+                for (String arg : extraArgs) {
+                    if (arg != null && !arg.isBlank()) {
+                        command.add(arg);
+                    }
+                }
+            }
+            command.add("-g");
+            command.add(url);
+            Process process = new ProcessBuilder(command).start();
             process.waitFor();
             String output = new String(process.getInputStream().readAllBytes()).trim();
-            if (output.isEmpty()) {
+            String errorOutput = new String(process.getErrorStream().readAllBytes()).trim();
+            int exitCode = process.exitValue();
+            if (exitCode != 0 || output.isEmpty()) {
+                Bukkit.getLogger().warning("[MediaPlayer]: YouTube resolver exited with code " + exitCode + ". stderr: " + errorOutput);
                 sender.sendMessage(ChatColor.RED + "Resolver failed to return a direct URL.");
                 return null;
             }
-            return output.split("\n")[0].trim();
+            for (String line : output.split("\n")) {
+                String candidate = line.trim();
+                if (!candidate.isEmpty()) {
+                    return candidate;
+                }
+            }
+            sender.sendMessage(ChatColor.RED + "Resolver failed to return a direct URL.");
+            return null;
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
@@ -290,7 +320,7 @@ public class MediaManager {
     private boolean isAllowedUrl(String url) {
         List<String> allowed = configuration.media_allowed_domains();
         if (allowed == null || allowed.isEmpty()) {
-            return false;
+            return isManifestGoogleVideo(url);
         }
         try {
             String host = new URI(url).getHost();
@@ -298,6 +328,9 @@ public class MediaManager {
                 return false;
             }
             String normalized = host.toLowerCase(Locale.ROOT);
+            if (normalized.equals("manifest.googlevideo.com")) {
+                return true;
+            }
             for (String domain : allowed) {
                 if (domain == null || domain.isBlank()) {
                     continue;
@@ -311,5 +344,17 @@ public class MediaManager {
             return false;
         }
         return false;
+    }
+
+    private boolean isManifestGoogleVideo(String url) {
+        try {
+            String host = new URI(url).getHost();
+            if (host == null) {
+                return false;
+            }
+            return host.toLowerCase(Locale.ROOT).equals("manifest.googlevideo.com");
+        } catch (URISyntaxException e) {
+            return false;
+        }
     }
 }

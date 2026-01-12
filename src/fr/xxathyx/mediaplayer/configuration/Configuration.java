@@ -92,6 +92,8 @@ public class Configuration {
 			fileconfiguration.set("sources.download-timeout-seconds", 30);
 			fileconfiguration.set("sources.cache-max-gb", 5);
 			fileconfiguration.set("sources.youtube-resolver-path", "");
+			fileconfiguration.set("sources.youtube-cookies-path", "");
+			fileconfiguration.set("sources.youtube-extra-args", java.util.Collections.emptyList());
 			fileconfiguration.set("sources.ffprobe-path", "plugins/MediaPlayer/bin/ffprobe");
 			fileconfiguration.set("sources.ffmpeg-path", "plugins/MediaPlayer/bin/ffmpeg");
 
@@ -449,6 +451,14 @@ public class Configuration {
 		return getStringValue("sources.youtube-resolver-path", "media.youtube-resolver-path", "");
 	}
 
+	public String media_youtube_cookies_path() {
+		return getStringValue("sources.youtube-cookies-path", null, "");
+	}
+
+	public java.util.List<String> media_youtube_extra_args() {
+		return getStringListValue("sources.youtube-extra-args", null);
+	}
+
 	public String sources_ffprobe_path() {
 		return getStringValue("sources.ffprobe-path", null, "plugins/MediaPlayer/bin/ffprobe");
 	}
@@ -544,6 +554,8 @@ public class Configuration {
 		changed |= ensureInt(configuration, "sources.download-timeout-seconds", "media.download-timeout-seconds", 30);
 		changed |= ensureLong(configuration, "sources.cache-max-gb", "media.cache-max-gb", 5);
 		changed |= ensureString(configuration, "sources.youtube-resolver-path", "media.youtube-resolver-path", "");
+		changed |= ensureString(configuration, "sources.youtube-cookies-path", null, "");
+		changed |= ensureStringList(configuration, "sources.youtube-extra-args", null);
 		changed |= ensureString(configuration, "sources.ffprobe-path", null, "plugins/MediaPlayer/bin/ffprobe");
 		changed |= ensureString(configuration, "sources.ffmpeg-path", null, "plugins/MediaPlayer/bin/ffmpeg");
 
