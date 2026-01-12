@@ -84,6 +84,13 @@
           <include>plugin.yml</include>
         </includes>
       </resource>
+      <resource>
+        <directory>src/fr/xxathyx/mediaplayer/translations</directory>
+        <includes>
+          <include>*.yml</include>
+        </includes>
+        <targetPath>translations</targetPath>
+      </resource>
     </resources>
 
     <plugins>

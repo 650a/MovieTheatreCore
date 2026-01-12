@@ -205,13 +205,10 @@ public class Main extends JavaPlugin implements Listener {
 		});
 		
         translater = new Translater();
-
-        translater.exportBundledTranslations();
+        String langage = translater.ensureTranslationExported(configuration.plugin_langage());
 		
 		updater = new Updater();
 		updater.update();
-		
-        String langage = new Configuration().plugin_langage();
 		
 		File updateFolder = new File(getDataFolder(), "updater/");
 		File updateTranslation = new File(updateFolder, langage + ".yml");
@@ -219,7 +216,7 @@ public class Main extends JavaPlugin implements Listener {
 		updateFolder.mkdir();
 		
 		try {
-			URL translationUrl = Main.class.getResource("translations/" + langage + ".yml");
+			URL translationUrl = Main.class.getResource("/translations/" + langage + ".yml");
 			if(translationUrl == null) {
 				Bukkit.getLogger().warning("[MediaPlayer]: Missing bundled translation " + langage + ".yml, skipping updater translation sync.");
 			}else {
