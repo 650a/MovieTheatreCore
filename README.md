@@ -1,4 +1,4 @@
-# The folk that makes MediaPlayer into what it always should've been
+# The fork that makes MediaPlayer into what it always should've been
 
 <h1 align="center">
   <img src="https://i.postimg.cc/gj8Pj7mb/icon.png" alt="MediaPlayer">
