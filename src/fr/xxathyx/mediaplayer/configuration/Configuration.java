@@ -87,6 +87,7 @@ public class Configuration {
 			fileconfiguration.set("video.visible-screen-frames-support", false);
 			fileconfiguration.set("video.glowing-screen-frames-support", false);
 
+			fileconfiguration.set("sources.allowlist-mode", "OFF");
 			fileconfiguration.set("sources.allowed-domains", java.util.Collections.emptyList());
 			fileconfiguration.set("sources.max-download-mb", 1024);
 			fileconfiguration.set("sources.download-timeout-seconds", 30);
@@ -96,6 +97,7 @@ public class Configuration {
 			fileconfiguration.set("sources.youtube-extra-args", java.util.Collections.emptyList());
 			fileconfiguration.set("sources.ffprobe-path", "plugins/MediaPlayer/bin/ffprobe");
 			fileconfiguration.set("sources.ffmpeg-path", "plugins/MediaPlayer/bin/ffmpeg");
+			fileconfiguration.set("sources.deno-path", "");
 
 			fileconfiguration.set("audio.enabled", false);
 			fileconfiguration.set("audio.chunk-seconds", 2);
@@ -157,7 +159,10 @@ public class Configuration {
 			if(migrateConfiguration(fileconfiguration)) {
 				fileconfiguration.save(configurationFile);
 			}
-		}catch (IOException | InvalidConfigurationException e) {
+		}catch (InvalidConfigurationException e) {
+			Bukkit.getLogger().warning("[MediaPlayer]: Invalid configuration.yml. Check for unquoted wildcards like *.domain.com; allowlist entries will be ignored until fixed.");
+			fileconfiguration = new YamlConfiguration();
+		}catch (IOException e) {
 			e.printStackTrace();
 		}
 		return fileconfiguration;
@@ -435,6 +440,10 @@ public class Configuration {
 		return getStringListValue("sources.allowed-domains", "media.allowed-domains");
 	}
 
+	public String sources_allowlist_mode() {
+		return getStringValue("sources.allowlist-mode", "media.allowlist-mode", "OFF");
+	}
+
 	public long media_max_download_mb() {
 		return getLongValue("sources.max-download-mb", "media.max-download-mb", 1024);
 	}
@@ -465,6 +474,10 @@ public class Configuration {
 
 	public String sources_ffmpeg_path() {
 		return getStringValue("sources.ffmpeg-path", null, "plugins/MediaPlayer/bin/ffmpeg");
+	}
+
+	public String sources_deno_path() {
+		return getStringValue("sources.deno-path", null, "");
 	}
 
 	public boolean audio_enabled() {
@@ -549,7 +562,9 @@ public class Configuration {
 		changed |= ensureBoolean(configuration, "video.visible-screen-frames-support", "plugin.visible-screen-frames-support", false);
 		changed |= ensureBoolean(configuration, "video.glowing-screen-frames-support", "plugin.glowing-screen-frames-support", false);
 
+		boolean hasAllowlistMode = configuration.contains("sources.allowlist-mode") || configuration.contains("media.allowlist-mode");
 		changed |= ensureStringList(configuration, "sources.allowed-domains", "media.allowed-domains");
+		changed |= ensureString(configuration, "sources.allowlist-mode", "media.allowlist-mode", "OFF");
 		changed |= ensureLong(configuration, "sources.max-download-mb", "media.max-download-mb", 1024);
 		changed |= ensureInt(configuration, "sources.download-timeout-seconds", "media.download-timeout-seconds", 30);
 		changed |= ensureLong(configuration, "sources.cache-max-gb", "media.cache-max-gb", 5);
@@ -558,6 +573,14 @@ public class Configuration {
 		changed |= ensureStringList(configuration, "sources.youtube-extra-args", null);
 		changed |= ensureString(configuration, "sources.ffprobe-path", null, "plugins/MediaPlayer/bin/ffprobe");
 		changed |= ensureString(configuration, "sources.ffmpeg-path", null, "plugins/MediaPlayer/bin/ffmpeg");
+		changed |= ensureString(configuration, "sources.deno-path", null, "");
+
+		if(!hasAllowlistMode) {
+			java.util.List<String> allowedDomains = configuration.getStringList("sources.allowed-domains");
+			String mode = (allowedDomains != null && !allowedDomains.isEmpty()) ? "STRICT" : "OFF";
+			configuration.set("sources.allowlist-mode", mode);
+			changed = true;
+		}
 
 		changed |= ensureBoolean(configuration, "audio.enabled", "audio.enabled", false);
 		changed |= ensureInt(configuration, "audio.chunk-seconds", "audio.chunk-seconds", 2);

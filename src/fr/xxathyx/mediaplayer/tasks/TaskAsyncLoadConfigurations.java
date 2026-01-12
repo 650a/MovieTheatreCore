@@ -60,10 +60,18 @@ public class TaskAsyncLoadConfigurations extends BukkitRunnable {
 				
 				if(Format.getCompatibleFormats().contains(FilenameUtils.getExtension(file.getName()))) {
 					if(!videoConfiguration.exists()) {
-						Bukkit.getLogger().warning("[MediaPlayer]: Missing video configuration for " + file.getName() + ". Skipping until metadata is generated.");
-						continue;
+						Video video = new Video(videoConfiguration);
+						try {
+							video.createConfiguration(file);
+							Bukkit.getLogger().info("[MediaPlayer]: Generated metadata for " + file.getName() + ".");
+						}catch (IOException | InvalidConfigurationException e) {
+							Bukkit.getLogger().warning("[MediaPlayer]: Failed to generate metadata for " + file.getName() + ": " + e.getMessage());
+						}
+						if(!videoConfiguration.exists()) {
+							continue;
+						}
 					}
-					
+
 					Video video = new Video(videoConfiguration);
 					
 					if(video.isLoaded()) {

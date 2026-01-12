@@ -1,14 +1,8 @@
 package fr.xxathyx.mediaplayer.ffmpeg;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-
-import org.apache.commons.io.FileUtils;
-import org.bukkit.Bukkit;
-
 import fr.xxathyx.mediaplayer.Main;
-import fr.xxathyx.mediaplayer.configuration.Configuration;
+import fr.xxathyx.mediaplayer.dependency.DependencyManager;
 import fr.xxathyx.mediaplayer.system.SystemType;
 
 /** 
@@ -24,7 +18,6 @@ import fr.xxathyx.mediaplayer.system.SystemType;
 public class Ffmpeg {
 	
 	private final Main plugin = Main.getPlugin(Main.class);
-	private final Configuration configuration = new Configuration();
 	
     /**
      * Gets the ffmpeg library file according to used operating system.
@@ -33,8 +26,7 @@ public class Ffmpeg {
      */
 	
 	public File getLibraryFile() {
-		if(fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.WINDOWS)) return new File(plugin.getDataFolder() + "/libraries/", "ffmpeg.exe");
-		return new File(plugin.getDataFolder() + "/libraries/", "ffmpeg");
+		return new File(plugin.getDataFolder() + "/libraries/", getBinaryName());
 	}
 	
     /**
@@ -44,33 +36,20 @@ public class Ffmpeg {
      */
 	
 	public boolean isInstalled() {
-		return getLibraryFile().getAbsoluteFile().exists();
+		DependencyManager.ResolvedBinary resolved = plugin.getDependencyManager().resolveBinary(DependencyManager.BinaryType.FFMPEG, false);
+		return resolved != null && resolved.isValid();
 	}
 
 	public String getExecutablePath() {
-		String configured = configuration.sources_ffmpeg_path();
-		if(configured != null && !configured.isBlank()) {
-			File configuredFile = new File(configured);
-			if(configuredFile.exists()) {
-				return configuredFile.getAbsolutePath();
-			}
-			if(!hasPathSeparator(configured)) {
-				return configured;
-			}
-		}
-		if(isInstalled()) {
-			return getLibraryFile().getAbsolutePath();
-		}
-		return "ffmpeg";
+		return plugin.getDependencyManager().getExecutablePath(DependencyManager.BinaryType.FFMPEG);
 	}
 
 	public File getExecutableFile() {
-		File file = new File(getExecutablePath());
-		return file.exists() ? file : null;
+		return plugin.getDependencyManager().getExecutableFile(DependencyManager.BinaryType.FFMPEG);
 	}
 
 	public boolean isAvailable() {
-		return getExecutableFile() != null || !hasPathSeparator(getExecutablePath());
+		return plugin.getDependencyManager().isAvailable(DependencyManager.BinaryType.FFMPEG);
 	}
 	
     /**
@@ -92,17 +71,13 @@ public class Ffmpeg {
 	
 	@SuppressWarnings("deprecation")
 	public void download() {
-    	try {
-    		if(fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.LINUX)) { FileUtils.copyURLToFile(new URL("https://www.dropbox.com/s/7j5i6n9d373t515/ffmpeg?dl=1"), getLibraryFile()); return;}
-    		if(fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.WINDOWS)) { FileUtils.copyURLToFile(new URL("https://www.dropbox.com/s/47mj4sc6p3c2s2m/ffmpeg.exe?dl=1"), getLibraryFile()); return;}
-    		if(fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.MAC)) { FileUtils.copyURLToFile(new URL("https://www.dropbox.com/s/aozdf7slrwcrv40/ffmpeg?dl=1"), getLibraryFile()); return;}
-    	}catch (IOException e) {
-	        Bukkit.getLogger().warning("[MediaPlayer]: Couldn't download plugin libraries, try again later or join our discord community, invitation visible on spigot ressource page.");
-			e.printStackTrace();
-		}
+		plugin.getDependencyManager().resolveBinary(DependencyManager.BinaryType.FFMPEG, true);
 	}
 
-	private boolean hasPathSeparator(String value) {
-		return value.contains("/") || value.contains("\\");
+	private String getBinaryName() {
+		if(fr.xxathyx.mediaplayer.system.System.getSystemType().equals(SystemType.WINDOWS)) {
+			return "ffmpeg.exe";
+		}
+		return "ffmpeg";
 	}
 }

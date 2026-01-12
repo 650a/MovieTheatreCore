@@ -69,6 +69,18 @@ MediaPlayer now uses a simplified configuration structure with grouped sections:
 Legacy keys like `plugin.langage`, `plugin.maximum-distance-to-receive`, and `media.allowed-domains` remain supported.
 On load, MediaPlayer maps existing legacy keys into the new structure and preserves your values.
 
+### Dependency + allowlist updates
+
+* `sources.allowlist-mode` is new and defaults to `OFF` (no blocking). Existing configs with `sources.allowed-domains`
+  are migrated to `sources.allowlist-mode: STRICT` so behavior remains unchanged.
+* `sources.deno-path` is new (optional). If set, MediaPlayer uses it for yt-dlp JS challenges.
+* If `sources.youtube-resolver-path` is empty, MediaPlayer now downloads and stages `yt-dlp` automatically.
+
+### Required changes
+
+* If you use the allowlist, explicitly set `sources.allowlist-mode: STRICT` and list domains in `sources.allowed-domains`.
+* For YouTube reliability, set `sources.youtube-cookies-path` to a valid cookies file (see README).
+
 ### Required changes
 
 * If you use audio, set `resource_pack.url`. When it is empty, MediaPlayer logs

@@ -21,6 +21,7 @@ import fr.xxathyx.mediaplayer.Main;
 import fr.xxathyx.mediaplayer.audio.AudioPackManager;
 import fr.xxathyx.mediaplayer.audio.AudioTrack;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
+import fr.xxathyx.mediaplayer.dependency.DependencyManager;
 import fr.xxathyx.mediaplayer.playback.PlaybackOptions;
 import fr.xxathyx.mediaplayer.screen.Screen;
 import fr.xxathyx.mediaplayer.tasks.TaskAsyncLoadConfigurations;
@@ -35,6 +36,8 @@ public class MediaManager {
     private final MediaCacheManager cacheManager;
     private final AudioPackManager audioPackManager;
     private final Scheduler scheduler;
+    private Integer lastResolverExitCode;
+    private String lastResolverError;
 
     public MediaManager(Main plugin, MediaLibrary library, AudioPackManager audioPackManager) {
         this.plugin = plugin;
@@ -55,7 +58,7 @@ public class MediaManager {
             return;
         }
         if (!isAllowedUrl(resolved)) {
-            sender.sendMessage(ChatColor.RED + "URL not allowed by media.allowed-domains.");
+            sender.sendMessage(ChatColor.RED + "URL not allowed by sources.allowlist-mode (STRICT).");
             return;
         }
         if (!plugin.getFfprobe().isAvailable()) {
@@ -66,12 +69,19 @@ public class MediaManager {
         scheduler.runAsync(() -> {
             try {
                 MediaEntry entry = downloadEntry(name, resolved, true);
-                ensureVideoFile(entry);
+                File videoFile = ensureVideoFile(entry);
+                File configFile = getVideoConfigFile(entry);
+                Video video = new Video(configFile);
+                if (!configFile.exists()) {
+                    video.createConfiguration(videoFile);
+                }
                 library.addEntry(entry);
                 reloadVideos();
                 scheduler.runSync(() -> sender.sendMessage(ChatColor.GREEN + "Media added: " + entry.getName()));
             } catch (IOException e) {
                 scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "Failed to download media: " + e.getMessage()));
+            } catch (org.bukkit.configuration.InvalidConfigurationException e) {
+                scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "Failed to write media metadata: " + e.getMessage()));
             }
         });
     }
@@ -122,7 +132,7 @@ public class MediaManager {
             return;
         }
         if (!isAllowedUrl(resolved)) {
-            sender.sendMessage(ChatColor.RED + "URL not allowed by media.allowed-domains.");
+            sender.sendMessage(ChatColor.RED + "URL not allowed by sources.allowlist-mode (STRICT).");
             return;
         }
         String urlHash = Integer.toHexString(resolved.hashCode());
@@ -246,26 +256,35 @@ public class MediaManager {
         if (!isYoutubeUrl(url)) {
             return url;
         }
-        String resolverPath = configuration.media_youtube_resolver_path();
-        if (resolverPath == null || resolverPath.isBlank()) {
-            sender.sendMessage(ChatColor.RED + "YouTube URLs require a resolver. Configure media.youtube-resolver-path or use a direct URL.");
-            return null;
-        }
-        File resolver = new File(resolverPath);
-        if (!resolver.exists()) {
-            sender.sendMessage(ChatColor.RED + "YouTube resolver not found. Configure media.youtube-resolver-path or use a direct URL.");
+        DependencyManager dependencyManager = plugin.getDependencyManager();
+        DependencyManager.ResolvedBinary resolver = dependencyManager.resolveBinary(DependencyManager.BinaryType.YT_DLP, true);
+        if (resolver == null || !resolver.isValid() || resolver.getStagedPath() == null) {
+            sender.sendMessage(ChatColor.RED + "YouTube resolver not available. Install yt-dlp or enable auto-update-libraries, then run /mp diagnose.");
+            lastResolverExitCode = null;
+            lastResolverError = resolver == null ? "yt-dlp not resolved" : resolver.getError();
             return null;
         }
         try {
             List<String> command = new java.util.ArrayList<>();
-            command.add(resolver.getAbsolutePath());
+            command.add(resolver.getStagedPath().toString());
             String cookiesPath = configuration.media_youtube_cookies_path();
-            if (cookiesPath != null && !cookiesPath.isBlank()) {
+            if (cookiesPath == null || cookiesPath.isBlank()) {
+                sender.sendMessage(ChatColor.YELLOW + "No cookies file configured. Set sources.youtube-cookies-path to reduce YouTube bot checks.");
+            } else {
                 File cookiesFile = new File(cookiesPath);
-                if (cookiesFile.exists()) {
+                if (cookiesFile.exists() && cookiesFile.canRead()) {
                     command.add("--cookies");
                     command.add(cookiesFile.getAbsolutePath());
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Cookies file missing or unreadable: " + cookiesFile.getPath() + ". Add cookies to avoid YouTube bot checks.");
                 }
+            }
+            DependencyManager.ResolvedBinary deno = dependencyManager.resolveBinary(DependencyManager.BinaryType.DENO, false);
+            if (deno != null && deno.isValid() && deno.getStagedPath() != null) {
+                command.add("--js-runtime");
+                command.add("deno:" + deno.getStagedPath());
+            } else {
+                sender.sendMessage(ChatColor.YELLOW + "Deno not available. yt-dlp may fail JS challenges; run /mp diagnose for details.");
             }
             List<String> extraArgs = configuration.media_youtube_extra_args();
             if (extraArgs != null && !extraArgs.isEmpty()) {
@@ -282,6 +301,8 @@ public class MediaManager {
             String output = new String(process.getInputStream().readAllBytes()).trim();
             String errorOutput = new String(process.getErrorStream().readAllBytes()).trim();
             int exitCode = process.exitValue();
+            lastResolverExitCode = exitCode;
+            lastResolverError = errorOutput;
             if (exitCode != 0 || output.isEmpty()) {
                 Bukkit.getLogger().warning("[MediaPlayer]: YouTube resolver exited with code " + exitCode + ". stderr: " + errorOutput);
                 sender.sendMessage(ChatColor.RED + "Resolver failed to return a direct URL.");
@@ -290,6 +311,7 @@ public class MediaManager {
             for (String line : output.split("\n")) {
                 String candidate = line.trim();
                 if (!candidate.isEmpty()) {
+                    sender.sendMessage(ChatColor.GREEN + "yt-dlp resolved a direct URL.");
                     return candidate;
                 }
             }
@@ -299,6 +321,8 @@ public class MediaManager {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
+            lastResolverExitCode = null;
+            lastResolverError = e.getMessage();
             sender.sendMessage(ChatColor.RED + "Resolver error: " + e.getMessage());
             return null;
         }
@@ -318,9 +342,13 @@ public class MediaManager {
     }
 
     private boolean isAllowedUrl(String url) {
+        String mode = configuration.sources_allowlist_mode();
+        if (mode == null || mode.isBlank() || mode.equalsIgnoreCase("OFF")) {
+            return true;
+        }
         List<String> allowed = configuration.media_allowed_domains();
         if (allowed == null || allowed.isEmpty()) {
-            return isManifestGoogleVideo(url);
+            return false;
         }
         try {
             String host = new URI(url).getHost();
@@ -328,14 +356,14 @@ public class MediaManager {
                 return false;
             }
             String normalized = host.toLowerCase(Locale.ROOT);
-            if (normalized.equals("manifest.googlevideo.com")) {
-                return true;
-            }
             for (String domain : allowed) {
                 if (domain == null || domain.isBlank()) {
                     continue;
                 }
-                String allowedDomain = domain.toLowerCase(Locale.ROOT);
+                String allowedDomain = domain.toLowerCase(Locale.ROOT).trim();
+                if (allowedDomain.startsWith("*.")) {
+                    allowedDomain = allowedDomain.substring(2);
+                }
                 if (normalized.equals(allowedDomain) || normalized.endsWith("." + allowedDomain)) {
                     return true;
                 }
@@ -346,15 +374,13 @@ public class MediaManager {
         return false;
     }
 
-    private boolean isManifestGoogleVideo(String url) {
-        try {
-            String host = new URI(url).getHost();
-            if (host == null) {
-                return false;
-            }
-            return host.toLowerCase(Locale.ROOT).equals("manifest.googlevideo.com");
-        } catch (URISyntaxException e) {
-            return false;
-        }
+    public Integer getLastResolverExitCode() {
+        return lastResolverExitCode;
     }
+
+    public String getLastResolverError() {
+        return lastResolverError;
+    }
+
+ 
 }

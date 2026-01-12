@@ -39,6 +39,7 @@ import fr.xxathyx.mediaplayer.audio.AudioPackManager;
 import fr.xxathyx.mediaplayer.commands.MediaPlayerCommands;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
 import fr.xxathyx.mediaplayer.configuration.updater.ConfigurationUpdater;
+import fr.xxathyx.mediaplayer.dependency.DependencyManager;
 import fr.xxathyx.mediaplayer.ffmpeg.Ffmpeg;
 import fr.xxathyx.mediaplayer.ffmpeg.Ffprobe;
 import fr.xxathyx.mediaplayer.group.Group;
@@ -157,6 +158,7 @@ public class Main extends JavaPlugin implements Listener {
 	private final MapColorSpaceData mapColorSpaceData = new MapColorSpaceData();
 	
 	private Configuration configuration;
+	private DependencyManager dependencyManager;
 	
 	private Ffmpeg ffmpeg;
 	private Ffprobe ffprobe;
@@ -192,17 +194,14 @@ public class Main extends JavaPlugin implements Listener {
 		
 		configuration = new Configuration();
 		configuration.setup();
-				
+
+		dependencyManager = new DependencyManager(this);
 		ffmpeg = new Ffmpeg();
 		ffprobe = new Ffprobe();
-		
-		Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable() {
-			@Override
-			public void run() {				
-				if(!ffmpeg.isInstalled()) ffmpeg.download();
-				if(!ffprobe.isInstalled()) ffprobe.download();
-			}
-		});
+
+		if(configuration.plugin_auto_update_libraries()) {
+			dependencyManager.warmUpDependenciesAsync();
+		}
 		
         translater = new Translater();
         String langage = translater.ensureTranslationExported(configuration.plugin_langage());
@@ -430,6 +429,10 @@ public class Main extends JavaPlugin implements Listener {
 	
 	public Ffprobe getFfprobe() {
 		return ffprobe;
+	}
+
+	public DependencyManager getDependencyManager() {
+		return dependencyManager;
 	}
 	
 	

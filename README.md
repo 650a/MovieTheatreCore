@@ -31,6 +31,7 @@ Root command: `/mediaplayer` (alias `/mp`).
 * `/mp resume <screen>` - Resume playback on a screen.
 * `/mp scale <screen> <fit|fill|stretch>` - Change scaling mode.
 * `/mp reload` - Reload MediaPlayer screens and stop sessions.
+* `/mp diagnose` - Show dependency and resolver status.
 
 Screen list entries open a Screen Control GUI with Play/Stop/Pause/Resume and scaling shortcuts.
 
@@ -50,8 +51,10 @@ general:
   language: EN
 
 sources:
+  allowlist-mode: OFF
   allowed-domains:
-    - "https://example.com"
+    - "example.com"
+  youtube-cookies-path: ""
 
 audio:
   enabled: false
@@ -69,11 +72,14 @@ resource_pack:
 * `video.screen-block` - Block used for screen structures.
 * `video.visible-screen-frames-support` - Whether item frames are visible.
 * `video.glowing-screen-frames-support` - Whether item frames glow.
-* `sources.allowed-domains` - URL whitelist (empty = deny all).
+* `sources.allowlist-mode` - `OFF` (no blocking) or `STRICT` (enforce allowlist).
+* `sources.allowed-domains` - URL whitelist (only used when allowlist-mode is `STRICT`).
 * `sources.max-download-mb` - Maximum download size.
 * `sources.download-timeout-seconds` - Download timeout per URL.
 * `sources.cache-max-gb` - LRU cache size cap.
 * `sources.youtube-resolver-path` - Optional yt-dlp resolver path.
+* `sources.youtube-cookies-path` - Cookies file for YouTube bot checks.
+* `sources.youtube-extra-args` - Extra yt-dlp arguments.
 * `audio.enabled` - Enable audio resource pack generation (vanilla clients).
 * `audio.chunk-seconds` - Chunk size for audio slicing.
 * `audio.codec` - Audio codec (vorbis default).
@@ -84,6 +90,7 @@ resource_pack:
 * `advanced.delete-video-on-loaded` - Legacy toggle, rarely needed.
 * `advanced.detect-duplicated-frames` - Experimental frame deduplication.
 * `advanced.ressemblance-to-skip` - Threshold for deduplication skip.
+* `sources.deno-path` - Optional deno path for yt-dlp JS challenges.
 
 Screens store per-screen data in `screens/<uuid>/<uuid>.yml`, including:
 
@@ -94,6 +101,22 @@ Screens store per-screen data in `screens/<uuid>/<uuid>.yml`, including:
 * **FIT**: Preserve aspect ratio, letterbox/pillarbox as needed.
 * **FILL**: Preserve aspect ratio, crop overflow to fill the screen.
 * **STRETCH**: Ignore aspect ratio and fill the entire screen.
+
+## Pterodactyl noexec staging
+
+MediaPlayer always stages binaries to `/tmp/mediaplayer/bin` before execution. This avoids `noexec` mounts in
+`plugins/MediaPlayer` on Pterodactyl/Wings. If `/tmp` is also `noexec`, `/mp diagnose` will report the error and you
+must provide an executable temp path via `-Djava.io.tmpdir=/path`.
+
+## YouTube cookies
+
+YouTube often requires a cookies file for yt-dlp. Set `sources.youtube-cookies-path` to a Netscape-format cookies
+file and keep it readable by the server. MediaPlayer passes `--cookies <path>` when the file exists.
+
+## Diagnose command
+
+Run `/mp diagnose` to verify OS/arch, executable staging status, detected binary versions (ffmpeg/ffprobe/yt-dlp/deno),
+cookies file state, and the last resolver exit code/stderr.
 
 ## Testing
 

@@ -1,5 +1,6 @@
 package fr.xxathyx.mediaplayer.commands;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,6 +18,7 @@ import org.bukkit.util.StringUtil;
 
 import fr.xxathyx.mediaplayer.Main;
 import fr.xxathyx.mediaplayer.configuration.Configuration;
+import fr.xxathyx.mediaplayer.dependency.DependencyManager;
 import fr.xxathyx.mediaplayer.gui.ScreenManagerMenu;
 import fr.xxathyx.mediaplayer.playback.PlaybackManager;
 import fr.xxathyx.mediaplayer.render.ScalingMode;
@@ -215,6 +217,10 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ChatColor.GREEN + "Playing " + video.getName() + " on screen " + screen.getName() + ".");
                 return true;
             }
+            case "diagnose" -> {
+                sendDiagnostics(sender);
+                return true;
+            }
             case "stop" -> {
                 if (!sender.hasPermission("mediaplayer.playback")) {
                     sender.sendMessage(configuration.insufficient_permissions());
@@ -318,7 +324,7 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         try {
             if (args.length == 1) {
-                List<String> candidates = List.of("screen", "media", "play", "stop", "pause", "resume", "scale", "reload");
+                List<String> candidates = List.of("screen", "media", "play", "stop", "pause", "resume", "scale", "reload", "diagnose");
                 StringUtil.copyPartialMatches(args[0], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("screen")) {
                 List<String> candidates = List.of("create", "delete", "list");
@@ -370,6 +376,7 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mp resume <screen>");
         sender.sendMessage(ChatColor.YELLOW + "/mp scale <screen> <fit|fill|stretch>");
         sender.sendMessage(ChatColor.YELLOW + "/mp reload");
+        sender.sendMessage(ChatColor.YELLOW + "/mp diagnose");
     }
 
     private void sendScreenHelp(CommandSender sender) {
@@ -384,6 +391,51 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mp media add <name> <url>");
         sender.sendMessage(ChatColor.YELLOW + "/mp media remove <name>");
         sender.sendMessage(ChatColor.YELLOW + "/mp media list");
+    }
+
+    private void sendDiagnostics(CommandSender sender) {
+        DependencyManager dependencyManager = plugin.getDependencyManager();
+        DependencyManager.EnvironmentInfo env = dependencyManager.getEnvironmentInfo();
+        sender.sendMessage(ChatColor.GOLD + "MediaPlayer diagnose:");
+        sender.sendMessage(ChatColor.GRAY + "OS/arch: " + env.getOs() + "/" + env.getArch());
+        sender.sendMessage(ChatColor.GRAY + "Plugin dir executable: " + yesNo(env.isPluginDirExecutable()));
+        sender.sendMessage(ChatColor.GRAY + "Rootfs read-only: " + yesNo(env.isRootReadOnly()));
+        sender.sendMessage(ChatColor.GRAY + "Staging dir: " + env.getStagingDir());
+        sender.sendMessage(ChatColor.GRAY + "Staging dir writable: " + yesNo(env.isStagingWritable()));
+        sender.sendMessage(ChatColor.GRAY + "Staging dir executable: " + yesNo(env.isStagingExecutable()));
+
+        reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.FFMPEG, false), "ffmpeg");
+        reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.FFPROBE, false), "ffprobe");
+        reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.YT_DLP, false), "yt-dlp");
+        reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.DENO, false), "deno");
+
+        String cookiesPath = configuration.media_youtube_cookies_path();
+        if (cookiesPath == null || cookiesPath.isBlank()) {
+            sender.sendMessage(ChatColor.GRAY + "Cookies file: not configured");
+        } else {
+            File cookies = new File(cookiesPath);
+            sender.sendMessage(ChatColor.GRAY + "Cookies file: " + cookies.getPath() + " (readable=" + yesNo(cookies.exists() && cookies.canRead()) + ")");
+        }
+
+        Integer exitCode = plugin.getMediaManager().getLastResolverExitCode();
+        String stderr = plugin.getMediaManager().getLastResolverError();
+        sender.sendMessage(ChatColor.GRAY + "Last resolver exit code: " + (exitCode == null ? "n/a" : exitCode));
+        sender.sendMessage(ChatColor.GRAY + "Last resolver stderr: " + (stderr == null || stderr.isBlank() ? "n/a" : stderr));
+    }
+
+    private void reportBinary(CommandSender sender, DependencyManager.ResolvedBinary resolved, String label) {
+        if (resolved == null || !resolved.isValid() || resolved.getStagedPath() == null) {
+            sender.sendMessage(ChatColor.RED + label + ": missing");
+            if (resolved != null && resolved.getError() != null) {
+                sender.sendMessage(ChatColor.DARK_RED + "  " + resolved.getError());
+            }
+            return;
+        }
+        sender.sendMessage(ChatColor.GRAY + label + ": " + resolved.getStagedPath() + " (" + resolved.getVersion() + ")");
+    }
+
+    private String yesNo(boolean value) {
+        return value ? "yes" : "no";
     }
 
     private int parseInt(CommandSender sender, String value) {
