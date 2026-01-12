@@ -228,6 +228,32 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                 sendDiagnostics(sender);
                 return true;
             }
+            case "deps" -> {
+                if (!sender.hasPermission("mediaplayer.deps.manage")) {
+                    sender.sendMessage(configuration.insufficient_permissions());
+                    return true;
+                }
+                if (filteredArgs.size() < 2) {
+                    sendDepsHelp(sender);
+                    return true;
+                }
+                switch (filteredArgs.get(1).toLowerCase()) {
+                    case "status" -> {
+                        sendDepsStatus(sender);
+                        return true;
+                    }
+                    case "reinstall" -> {
+                        sender.sendMessage(ChatColor.YELLOW + "Reinstalling MediaPlayer dependencies in the background...");
+                        plugin.getDependencyManager().reinstallAllAsync(() ->
+                                sender.sendMessage(ChatColor.GREEN + "Dependency reinstall complete. Run /mp deps status to verify."));
+                        return true;
+                    }
+                    default -> {
+                        sendDepsHelp(sender);
+                        return true;
+                    }
+                }
+            }
             case "theatre" -> {
                 TheatreManager theatreManager = plugin.getTheatreManager();
                 if (theatreManager == null) {
@@ -569,7 +595,7 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         try {
             if (args.length == 1) {
-                List<String> candidates = List.of("screen", "media", "play", "stop", "pause", "resume", "scale", "reload", "diagnose", "pack", "theatre");
+                List<String> candidates = List.of("screen", "media", "play", "stop", "pause", "resume", "scale", "reload", "diagnose", "pack", "deps", "theatre");
                 StringUtil.copyPartialMatches(args[0], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("screen")) {
                 List<String> candidates = List.of("create", "delete", "list");
@@ -579,6 +605,9 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("pack")) {
                 List<String> candidates = List.of("status", "rebuild", "url");
+                StringUtil.copyPartialMatches(args[1], candidates, completions);
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("deps")) {
+                List<String> candidates = List.of("status", "reinstall");
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("theatre")) {
                 List<String> candidates = List.of("room", "schedule", "play", "stop", "doctor");
@@ -663,6 +692,8 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mp pack status");
         sender.sendMessage(ChatColor.YELLOW + "/mp pack rebuild");
         sender.sendMessage(ChatColor.YELLOW + "/mp pack url");
+        sender.sendMessage(ChatColor.YELLOW + "/mp deps status");
+        sender.sendMessage(ChatColor.YELLOW + "/mp deps reinstall");
         sender.sendMessage(ChatColor.YELLOW + "/mp theatre room create <name> [screen...]");
         sender.sendMessage(ChatColor.YELLOW + "/mp theatre room delete <name>");
         sender.sendMessage(ChatColor.YELLOW + "/mp theatre schedule add <room> <HH:MM> <mediaId> [repeat=daily|weekly|none]");
@@ -719,6 +750,37 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mp pack url");
     }
 
+    private void sendDepsHelp(CommandSender sender) {
+        sender.sendMessage(ChatColor.GOLD + "Dependency commands:");
+        sender.sendMessage(ChatColor.YELLOW + "/mp deps status");
+        sender.sendMessage(ChatColor.YELLOW + "/mp deps reinstall");
+    }
+
+    private void sendDepsStatus(CommandSender sender) {
+        DependencyManager dependencyManager = plugin.getDependencyManager();
+        DependencyManager.EnvironmentInfo env = dependencyManager.getEnvironmentInfo();
+        sender.sendMessage(ChatColor.GOLD + "MediaPlayer dependencies:");
+        sender.sendMessage(ChatColor.GRAY + "OS/arch: " + env.getOs() + "/" + env.getArch());
+        sender.sendMessage(ChatColor.GRAY + "Plugin dir executable: " + yesNo(env.isPluginDirExecutable()));
+        sender.sendMessage(ChatColor.GRAY + "Install dir: " + env.getInstallDir());
+        sender.sendMessage(ChatColor.GRAY + "Install dir writable: " + yesNo(env.isInstallDirWritable()));
+        sender.sendMessage(ChatColor.GRAY + "Install dir executable: " + yesNo(env.isInstallDirExecutable()));
+
+        reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.FFMPEG, false), "ffmpeg");
+        reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.FFPROBE, false), "ffprobe");
+        reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.YT_DLP, false), "yt-dlp");
+        reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.DENO, false), "deno");
+
+        String cookiesPath = configuration.youtube_cookies_path();
+        if (cookiesPath == null || cookiesPath.isBlank()) {
+            sender.sendMessage(ChatColor.GRAY + "Cookies file: not configured");
+        } else {
+            File cookies = new File(cookiesPath);
+            sender.sendMessage(ChatColor.GRAY + "Cookies file: " + cookies.getPath() + " (readable=" + yesNo(cookies.exists() && cookies.canRead()) + ")");
+        }
+        sender.sendMessage(ChatColor.GRAY + "Require cookies: " + yesNo(configuration.youtube_require_cookies()));
+    }
+
     private void sendPackStatus(CommandSender sender) {
         fr.xxathyx.mediaplayer.audio.AudioPackManager packManager = plugin.getAudioPackManager();
         if (packManager == null) {
@@ -771,16 +833,16 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GRAY + "OS/arch: " + env.getOs() + "/" + env.getArch());
         sender.sendMessage(ChatColor.GRAY + "Plugin dir executable: " + yesNo(env.isPluginDirExecutable()));
         sender.sendMessage(ChatColor.GRAY + "Rootfs read-only: " + yesNo(env.isRootReadOnly()));
-        sender.sendMessage(ChatColor.GRAY + "Staging dir: " + env.getStagingDir());
-        sender.sendMessage(ChatColor.GRAY + "Staging dir writable: " + yesNo(env.isStagingWritable()));
-        sender.sendMessage(ChatColor.GRAY + "Staging dir executable: " + yesNo(env.isStagingExecutable()));
+        sender.sendMessage(ChatColor.GRAY + "Install dir: " + env.getInstallDir());
+        sender.sendMessage(ChatColor.GRAY + "Install dir writable: " + yesNo(env.isInstallDirWritable()));
+        sender.sendMessage(ChatColor.GRAY + "Install dir executable: " + yesNo(env.isInstallDirExecutable()));
 
         reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.FFMPEG, false), "ffmpeg");
         reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.FFPROBE, false), "ffprobe");
         reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.YT_DLP, false), "yt-dlp");
         reportBinary(sender, dependencyManager.resolveBinary(DependencyManager.BinaryType.DENO, false), "deno");
 
-        String cookiesPath = configuration.media_youtube_cookies_path();
+        String cookiesPath = configuration.youtube_cookies_path();
         if (cookiesPath == null || cookiesPath.isBlank()) {
             sender.sendMessage(ChatColor.GRAY + "Cookies file: not configured");
         } else {
@@ -795,14 +857,15 @@ public class MediaPlayerCommands implements CommandExecutor, TabCompleter {
     }
 
     private void reportBinary(CommandSender sender, DependencyManager.ResolvedBinary resolved, String label) {
-        if (resolved == null || !resolved.isValid() || resolved.getStagedPath() == null) {
+        if (resolved == null || !resolved.isValid() || resolved.getPath() == null) {
             sender.sendMessage(ChatColor.RED + label + ": missing");
             if (resolved != null && resolved.getError() != null) {
                 sender.sendMessage(ChatColor.DARK_RED + "  " + resolved.getError());
             }
             return;
         }
-        sender.sendMessage(ChatColor.GRAY + label + ": " + resolved.getStagedPath() + " (" + resolved.getVersion() + ")");
+        String source = resolved.getSource() == null ? "unknown" : resolved.getSource().name().toLowerCase(Locale.ROOT);
+        sender.sendMessage(ChatColor.GRAY + label + ": " + resolved.getPath() + " (" + resolved.getVersion() + ", " + source + ")");
     }
 
     private String yesNo(boolean value) {
