@@ -31,7 +31,7 @@ jobs:
           java -jar BuildTools.jar --rev 1.20.4 --compile craftbukkit,spigot
 
       - name: Build with Maven
-        run: mvn -B -ntp -DskipTests clean package
+        run: mvn -B -ntp clean verify
 
       - name: Prepare release artifact
         if: startsWith(github.ref, 'refs/tags/')
