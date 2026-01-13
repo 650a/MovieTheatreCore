@@ -120,6 +120,18 @@ public class MediaLibrary {
         save();
     }
 
+    public boolean isIdInUse(String id) {
+        if (id == null || id.isBlank()) {
+            return false;
+        }
+        for (MediaEntry entry : listAllCached()) {
+            if (id.equalsIgnoreCase(entry.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public List<MediaEntry> listEntries() {
         return new ArrayList<>(entries.values());
     }

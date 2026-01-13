@@ -48,10 +48,25 @@ public class MediaManager {
         this.scheduler = new Scheduler(plugin);
     }
 
-    public void addMedia(CommandSender sender, String name, String url) {
+    public void addMedia(CommandSender sender, String name, String url, String customId) {
         if (library.getEntry(name) != null) {
             sender.sendMessage(ChatColor.RED + "Media with that name already exists.");
             return;
+        }
+        if (!isSafeIdentifier(name)) {
+            sender.sendMessage(ChatColor.RED + "Media name contains invalid characters. Use letters, numbers, dashes, or underscores.");
+            return;
+        }
+        String resolvedCustomId = normalizeIdentifier(customId);
+        if (resolvedCustomId != null) {
+            if (!isSafeIdentifier(resolvedCustomId)) {
+                sender.sendMessage(ChatColor.RED + "Media ID contains invalid characters. Use letters, numbers, dashes, or underscores.");
+                return;
+            }
+            if (library.isIdInUse(resolvedCustomId)) {
+                sender.sendMessage(ChatColor.RED + "Media ID already in use. Choose a different ID.");
+                return;
+            }
         }
         scheduler.runAsync(() -> {
             String resolved = resolveUrl(sender, url);
@@ -69,7 +84,7 @@ public class MediaManager {
             }
 
             try {
-                MediaEntry entry = downloadEntry(name, resolved, true);
+                MediaEntry entry = downloadEntry(name, resolved, resolvedCustomId, true);
                 File videoFile = ensureVideoFile(entry);
                 File configFile = getVideoConfigFile(entry);
                 Video video = new Video(configFile);
@@ -209,7 +224,7 @@ public class MediaManager {
 
             try {
                 String tempName = "url-" + urlHash;
-                MediaEntry downloaded = downloadEntry(tempName, resolved, false);
+                MediaEntry downloaded = downloadEntry(tempName, resolved, null, false);
                 library.addUrlCache(urlHash, downloaded);
                 ensureVideoFile(downloaded);
                 reloadVideos();
@@ -220,9 +235,10 @@ public class MediaManager {
         });
     }
 
-    private MediaEntry downloadEntry(String name, String url, boolean libraryEntry) throws IOException {
+    private MediaEntry downloadEntry(String name, String url, String customId, boolean libraryEntry) throws IOException {
         String extension = FilenameUtils.getExtension(url);
-        MediaEntry entry = new MediaEntry(name, url, UUID.randomUUID().toString(), extension, libraryEntry);
+        String entryId = (customId == null || customId.isBlank()) ? UUID.randomUUID().toString() : customId;
+        MediaEntry entry = new MediaEntry(name, url, entryId, extension, libraryEntry);
         long maxBytes = configuration.media_max_download_mb() * 1024L * 1024L;
         MediaEntry downloaded = cacheManager.download(entry, maxBytes, configuration.media_download_timeout_seconds());
         cacheManager.touch(downloaded);
@@ -452,6 +468,24 @@ public class MediaManager {
 
     public String getLastResolverError() {
         return lastResolverError;
+    }
+
+    private boolean isSafeIdentifier(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        if (value.contains("/") || value.contains("\\") || value.contains("..")) {
+            return false;
+        }
+        return value.matches("[A-Za-z0-9_-]+");
+    }
+
+    private String normalizeIdentifier(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
  
