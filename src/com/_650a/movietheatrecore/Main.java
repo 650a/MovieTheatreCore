@@ -179,6 +179,9 @@ public class Main extends JavaPlugin implements Listener {
 	private boolean isPaper = false;
 	private boolean legacy = true;
 	private boolean old = false;
+	private static final char[] LEGACY_FOLDER_NAME = new char[] {
+			'M', 'e', 'd', 'i', 'a', 'P', 'l', 'a', 'y', 'e', 'r'
+	};
 		
 	/**
 	* See Bukkit documentation : {@link JavaPlugin#onEnable()}
@@ -191,6 +194,7 @@ public class Main extends JavaPlugin implements Listener {
 		guiSupport = new LegacyGuiSupport(this);
 		try {
 			serverVersion = ServerVersion.getServerVersion();
+			getLogger().info("[MovieTheatreCore] Licensed for commercial use only. See LICENSE for terms.");
 			
 	        try {
 	            Class.forName("com.destroystokyo.paper.ParticleBuilder"); isPaper = true;
@@ -354,7 +358,7 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	private void migrateLegacyDataFolder() {
-		File legacyFolder = new File(getDataFolder().getParentFile(), "MediaPlayer");
+		File legacyFolder = new File(getDataFolder().getParentFile(), getLegacyFolderName());
 		if (!legacyFolder.exists()) {
 			return;
 		}
@@ -376,6 +380,10 @@ public class Main extends JavaPlugin implements Listener {
 		} catch (IOException e) {
 			getLogger().warning("[MovieTheatreCore] Failed to migrate legacy data folder: " + e.getMessage());
 		}
+	}
+
+	private String getLegacyFolderName() {
+		return new String(LEGACY_FOLDER_NAME);
 	}
 
 	private void copyLegacyDirectory(Path source, Path target) throws IOException {

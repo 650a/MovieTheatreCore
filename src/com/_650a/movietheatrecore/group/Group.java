@@ -42,18 +42,11 @@ public class Group {
 		ArrayList<UUID> players = new ArrayList<>();
 		
 		for(Player player : Bukkit.getOnlinePlayers()) {
-			if(PermissionUtil.hasPermission(player, permission, legacyPermission(permission))) {
+			if(PermissionUtil.hasPermission(player, permission)) {
 				players.add(player.getUniqueId());
 			}
 		}
 		this.players = players;
-	}
-
-	private String legacyPermission(String permission) {
-		if (permission != null && permission.startsWith("movietheatrecore.")) {
-			return "mediaplayer." + permission.substring("movietheatrecore.".length());
-		}
-		return null;
 	}
 	
 	/**

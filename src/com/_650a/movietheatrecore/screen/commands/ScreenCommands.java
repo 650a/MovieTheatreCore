@@ -65,7 +65,7 @@ public class ScreenCommands implements CommandExecutor, TabCompleter {
 		}
 		
 		if(cmd.getName().equalsIgnoreCase("screen")) {
-			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.screen", "mediaplayer.command.screen")) {
+			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.screen")) {
 				
 				Player player = (Player) sender;
 				
@@ -226,7 +226,7 @@ public class ScreenCommands implements CommandExecutor, TabCompleter {
 		}
 		
 		if(cmd.getName().equalsIgnoreCase("screens")) {
-			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.screens", "mediaplayer.command.screens")) {
+			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.screens")) {
 								
 				if(plugin.getRegisteredScreens().isEmpty()) {
 					sender.sendMessage(configuration.no_screen_playing());

@@ -65,7 +65,7 @@ public class InventoryClickPanel implements Listener {
 		
 		if(plugin.getVideoPanels().containsKey(event.getWhoClicked().getUniqueId())) {
 			
-			if(!PermissionUtil.hasPermission(event.getWhoClicked(), "movietheatrecore.permission.admin", "mediaplayer.permission.admin")) {
+			if(!PermissionUtil.hasPermission(event.getWhoClicked(), "movietheatrecore.permission.admin")) {
 				event.getWhoClicked().closeInventory();
 				return;
 			}
@@ -185,7 +185,7 @@ public class InventoryClickPanel implements Listener {
 		
 		if(plugin.getScreenPanels().containsKey(event.getWhoClicked().getUniqueId())) {
 			
-			if(!PermissionUtil.hasPermission(event.getWhoClicked(), "movietheatrecore.permission.admin", "mediaplayer.permission.admin")) {
+			if(!PermissionUtil.hasPermission(event.getWhoClicked(), "movietheatrecore.permission.admin")) {
 				event.getWhoClicked().closeInventory();
 				return;
 			}

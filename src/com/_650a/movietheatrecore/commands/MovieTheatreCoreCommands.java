@@ -51,7 +51,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.command", "mediaplayer.command")) {
+        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.command")) {
             sender.sendMessage(configuration.insufficient_permissions());
             return true;
         }
@@ -81,7 +81,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
 
                 switch (filteredArgs.get(1).toLowerCase()) {
                     case "create" -> {
-                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.screen.manage", "mediaplayer.screen.manage")) {
+                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.screen.manage")) {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
@@ -108,7 +108,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     case "delete" -> {
-                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.screen.manage", "mediaplayer.screen.manage")) {
+                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.screen.manage")) {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
@@ -150,7 +150,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 }
                 switch (filteredArgs.get(1).toLowerCase()) {
                     case "add" -> {
-                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.admin", "mediaplayer.media.admin")) {
+                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.admin")) {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
@@ -162,7 +162,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     case "remove" -> {
-                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.admin", "mediaplayer.media.admin")) {
+                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.admin")) {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
@@ -174,7 +174,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     case "list" -> {
-                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.manage", "mediaplayer.media.manage")) {
+                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.manage")) {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
@@ -188,7 +188,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 }
             }
             case "play" -> {
-                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.playback", "mediaplayer.playback")) {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.playback")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
@@ -202,7 +202,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 if (filteredArgs.size() >= 4 && filteredArgs.get(2).equalsIgnoreCase("media")) {
-                    if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.manage", "mediaplayer.media.manage")) {
+                    if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.manage")) {
                         sender.sendMessage(configuration.insufficient_permissions());
                         return true;
                     }
@@ -210,7 +210,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 if (filteredArgs.size() >= 4 && filteredArgs.get(2).equalsIgnoreCase("url")) {
-                    if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.admin", "mediaplayer.media.admin")) {
+                    if (!PermissionUtil.hasPermission(sender, "movietheatrecore.media.admin")) {
                         sender.sendMessage(configuration.insufficient_permissions());
                         return true;
                     }
@@ -231,7 +231,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "update" -> {
-                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.admin", "mediaplayer.admin")) {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.admin")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
@@ -247,7 +247,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "deps" -> {
-                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.deps.manage", "mediaplayer.deps.manage")) {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.deps.manage")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
@@ -290,7 +290,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                         }
                         switch (filteredArgs.get(2).toLowerCase()) {
                             case "create" -> {
-                                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.room.create", "mediaplayer.theatre.room.create")) {
+                                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.room.create")) {
                                     sender.sendMessage(configuration.insufficient_permissions());
                                     return true;
                                 }
@@ -313,7 +313,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                                 return true;
                             }
                             case "delete" -> {
-                                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.room.delete", "mediaplayer.theatre.room.delete")) {
+                                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.room.delete")) {
                                     sender.sendMessage(configuration.insufficient_permissions());
                                     return true;
                                 }
@@ -337,7 +337,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                         }
                         String action = filteredArgs.get(2).toLowerCase();
                         if (action.equals("add")) {
-                            if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.schedule.add", "mediaplayer.theatre.schedule.add")) {
+                            if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.schedule.add")) {
                                 sender.sendMessage(configuration.insufficient_permissions());
                                 return true;
                             }
@@ -372,7 +372,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                             return true;
                         }
                         if (action.equals("remove")) {
-                            if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.schedule.remove", "mediaplayer.theatre.schedule.remove")) {
+                            if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.schedule.remove")) {
                                 sender.sendMessage(configuration.insufficient_permissions());
                                 return true;
                             }
@@ -394,7 +394,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                             return true;
                         }
                         if (action.equals("list")) {
-                            if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.schedule.list", "mediaplayer.theatre.schedule.list")) {
+                            if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.schedule.list")) {
                                 sender.sendMessage(configuration.insufficient_permissions());
                                 return true;
                             }
@@ -426,7 +426,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     case "play" -> {
-                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.play", "mediaplayer.theatre.play")) {
+                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.play")) {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
@@ -443,7 +443,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     case "stop" -> {
-                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.stop", "mediaplayer.theatre.stop")) {
+                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.stop")) {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
@@ -461,7 +461,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     case "doctor" -> {
-                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.doctor", "mediaplayer.theatre.doctor")) {
+                        if (!PermissionUtil.hasPermission(sender, "movietheatrecore.theatre.doctor")) {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
@@ -478,7 +478,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 }
             }
             case "pack" -> {
-                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.pack.manage", "mediaplayer.pack.manage")) {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.pack.manage")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
@@ -507,7 +507,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 }
             }
             case "stop" -> {
-                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.playback", "mediaplayer.playback")) {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.playback")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
@@ -525,7 +525,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "pause" -> {
-                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.playback", "mediaplayer.playback")) {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.playback")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
@@ -543,7 +543,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "resume" -> {
-                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.playback", "mediaplayer.playback")) {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.playback")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
@@ -561,7 +561,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "scale" -> {
-                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.screen.manage", "mediaplayer.screen.manage")) {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.screen.manage")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }
@@ -584,7 +584,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "reload" -> {
-                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.admin", "mediaplayer.admin")) {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.admin")) {
                     sender.sendMessage(configuration.insufficient_permissions());
                     return true;
                 }

@@ -48,7 +48,7 @@ public class InventoryClickContents implements Listener {
 		
 		if(event.getView().getTitle().contains(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Contents")) {
 			
-			if(!PermissionUtil.hasPermission(event.getWhoClicked(), "movietheatrecore.permission.admin", "mediaplayer.permission.admin")) {
+			if(!PermissionUtil.hasPermission(event.getWhoClicked(), "movietheatrecore.permission.admin")) {
 				event.getWhoClicked().closeInventory();
 				return;
 			}

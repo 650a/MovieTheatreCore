@@ -46,7 +46,7 @@ public class InventoryClickScreens implements Listener {
 		
 		if(event.getView().getTitle().contains(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Screens")) {
 			
-			if(!PermissionUtil.hasPermission(event.getWhoClicked(), "movietheatrecore.permission.admin", "mediaplayer.permission.admin")) {
+			if(!PermissionUtil.hasPermission(event.getWhoClicked(), "movietheatrecore.permission.admin")) {
 				event.getWhoClicked().closeInventory();
 				return;
 			}

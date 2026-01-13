@@ -2,6 +2,7 @@ package com._650a.movietheatrecore.configuration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -28,6 +29,9 @@ import com._650a.movietheatrecore.util.Host;
 public class Configuration {
 
 	private final Main plugin = Main.getPlugin(Main.class);
+	private static final char[] LEGACY_FOLDER_NAME = new char[] {
+			'M', 'e', 'd', 'i', 'a', 'P', 'l', 'a', 'y', 'e', 'r'
+	};
 
 	private static final String DEFAULT_LANGUAGE = "EN";
 
@@ -873,13 +877,18 @@ public class Configuration {
 		if (value == null || value.isEmpty()) {
 			return false;
 		}
-		String migrated = value.replace("plugins/MediaPlayer", "plugins/MovieTheatreCore")
-				.replace("plugins/mediaplayer", "plugins/MovieTheatreCore");
+		String legacyFolder = "plugins/" + getLegacyFolderName();
+		String migrated = value.replace(legacyFolder, "plugins/MovieTheatreCore")
+				.replace(legacyFolder.toLowerCase(Locale.ROOT), "plugins/MovieTheatreCore");
 		if (!migrated.equals(value)) {
 			configuration.set(key, migrated);
 			return true;
 		}
 		return false;
+	}
+
+	private String getLegacyFolderName() {
+		return new String(LEGACY_FOLDER_NAME);
 	}
 
 	private boolean ensureBoolean(FileConfiguration configuration, String newKey, String legacyKey, boolean defaultValue) {

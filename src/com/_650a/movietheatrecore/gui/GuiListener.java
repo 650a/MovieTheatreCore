@@ -71,7 +71,7 @@ public class GuiListener implements Listener {
         }
 
         Player player = (Player) event.getWhoClicked();
-        if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage", "mediaplayer.screen.manage")) {
+        if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage")) {
             player.sendMessage(configuration.insufficient_permissions());
             return;
         }
@@ -108,35 +108,35 @@ public class GuiListener implements Listener {
 
         switch (action) {
             case "play" -> {
-                if (!PermissionUtil.hasPermission(player, "movietheatrecore.playback", "mediaplayer.playback")) {
+                if (!PermissionUtil.hasPermission(player, "movietheatrecore.playback")) {
                     player.sendMessage(configuration.insufficient_permissions());
                     return;
                 }
                 handlePlay(player, playbackManager, screen);
             }
             case "stop" -> {
-                if (!PermissionUtil.hasPermission(player, "movietheatrecore.playback", "mediaplayer.playback")) {
+                if (!PermissionUtil.hasPermission(player, "movietheatrecore.playback")) {
                     player.sendMessage(configuration.insufficient_permissions());
                     return;
                 }
                 playbackManager.stop(screen, null, true);
             }
             case "pause" -> {
-                if (!PermissionUtil.hasPermission(player, "movietheatrecore.playback", "mediaplayer.playback")) {
+                if (!PermissionUtil.hasPermission(player, "movietheatrecore.playback")) {
                     player.sendMessage(configuration.insufficient_permissions());
                     return;
                 }
                 playbackManager.pause(screen);
             }
             case "resume" -> {
-                if (!PermissionUtil.hasPermission(player, "movietheatrecore.playback", "mediaplayer.playback")) {
+                if (!PermissionUtil.hasPermission(player, "movietheatrecore.playback")) {
                     player.sendMessage(configuration.insufficient_permissions());
                     return;
                 }
                 playbackManager.resume(screen);
             }
             case "scale" -> {
-                if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage", "mediaplayer.screen.manage")) {
+                if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage")) {
                     player.sendMessage(configuration.insufficient_permissions());
                     return;
                 }

@@ -1,6 +1,21 @@
 # MovieTheatreCore
 
-MovieTheatreCore is a multi-room cinema plugin for Minecraft servers. It lets you build theatres with multiple screens, schedule shows, and stream media across your network with reliable, container-friendly dependency management.
+MovieTheatreCore is a commercial, closed-source multi-room cinema plugin for Minecraft servers. It lets you build theatres with multiple screens, schedule shows, and stream media across your network with reliable, container-friendly dependency management.
+
+## Commercial License & Ownership
+
+MovieTheatreCore is proprietary software owned by 650a. Usage is licensed per server/network and is subject to the terms in [`LICENSE`](LICENSE). License violations void permission to use the software. No redistribution, resale, modification, or public forks are permitted.
+
+### License Summary
+
+- Licensed per server or network instance.
+- Reverse engineering, modification, redistribution, resale, and public forks are prohibited.
+- Personal backups are permitted for recovery purposes only.
+- License violations immediately terminate permission to use the software.
+
+## Marketplace Usage (SpigotMC / BuiltByBit)
+
+MovieTheatreCore is distributed only through official marketplace listings. Installations must comply with both the MovieTheatreCore license and the SpigotMC / BuiltByBit marketplace terms.
 
 ## Highlights
 
@@ -15,7 +30,7 @@ MovieTheatreCore is a multi-room cinema plugin for Minecraft servers. It lets yo
 ### Pterodactyl/Wings (container)
 
 1. **Install the plugin jar**
-   - Place `MovieTheatreCore-<version>.jar` (or `MovieTheatreCore.jar`) in `plugins/`.
+   - Download from the official marketplace listing and place `MovieTheatreCore-<version>.jar` (or `MovieTheatreCore.jar`) in `plugins/`.
 
 2. **Disk space**
    - Minimum free space: **512 MB** (configurable via `dependencies.install.min-free-mb`).
@@ -54,6 +69,20 @@ When `audio.enabled: true`, MovieTheatreCore generates an on-demand resource pac
 - Provide a static pack URL (set `resource_pack.url`), **or**
 - Enable the built-in pack server (`resource_pack.server.enabled: true`).
 
+## Auto-installed Dependencies
+
+MovieTheatreCore can automatically download and manage runtime binaries for:
+
+- **ffmpeg / ffprobe**
+- **yt-dlp**
+- **deno**
+
+These binaries are installed into `plugins/MovieTheatreCore/runtime/bin` (or the configured exec-safe path) when auto-install is enabled.
+
+## External Binaries Disclaimer
+
+MovieTheatreCore ships with an installer for third-party tools, but those binaries are provided by their respective authors. Your use of ffmpeg/ffprobe, yt-dlp, and deno is governed by their own licenses and terms. You are responsible for compliance and any required redistribution notices in your environment.
+
 ## TROUBLESHOOTING
 
 ### “No space left on device”
@@ -77,7 +106,6 @@ dependencies:
 
 ### Updater 404 / missing release asset
 
-- Ensure the update URL points to the MovieTheatreCore jar asset:
-  `https://github.com/650a/MediaPlayerPro/releases/latest/download/MovieTheatreCore.jar`
+- Ensure the update URL is set to the official marketplace download endpoint.
 - Run `/mtc update check` to see the URL and status.
 - If you do not want auto-updates, set `general.auto-update: false`.

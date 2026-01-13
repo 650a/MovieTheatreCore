@@ -54,7 +54,7 @@ public class ImageCommands implements CommandExecutor, TabCompleter {
 	public boolean onCommand(CommandSender sender, Command cmd, String msg, String[] arg3) {
 		
 		if(cmd.getName().equalsIgnoreCase("image")) {
-			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.image", "mediaplayer.command.image")) {
+			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.image")) {
 				
 				Player player = null;
 				
@@ -283,7 +283,7 @@ public class ImageCommands implements CommandExecutor, TabCompleter {
 		}
 		
 		if(cmd.getName().equalsIgnoreCase("images")) {
-			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.images", "mediaplayer.command.images")) {
+			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.images")) {
 				
 				String imagesList = ChatColor.DARK_GREEN + configuration.available_images() + ChatColor.GRAY + " (" + new File(plugin.getDataFolder() + "/images/maps/").listFiles().length + ")" + "\n " + ChatColor.RESET;
 				

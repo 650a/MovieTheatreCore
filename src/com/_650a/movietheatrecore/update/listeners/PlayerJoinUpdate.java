@@ -42,7 +42,7 @@ public class PlayerJoinUpdate implements Listener {
 	
 	public void onJoin(PlayerJoinEvent event) throws UnknownHostException, IOException {
 		
-		if(PermissionUtil.hasPermission(event.getPlayer(), "movietheatrecore.permission.admin", "mediaplayer.permission.admin")) {
+		if(PermissionUtil.hasPermission(event.getPlayer(), "movietheatrecore.permission.admin")) {
 			if(updater.checkForUpdates(false).isOutdated()) {
 				Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
 					event.getPlayer().sendMessage(configuration.plugin_outdated());

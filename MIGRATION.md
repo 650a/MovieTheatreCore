@@ -6,7 +6,7 @@ This release introduces a simplified command set, a new playback pipeline with a
 
 ## Command changes
 
-* **New root command:** `/movietheatrecore` (aliases `/mtc`, `/theatre`, legacy `/mediaplayer`, `/mp`).
+* **New root command:** `/movietheatrecore` (aliases `/mtc`, `/theatre`, `/mp`).
 * Legacy commands such as `/video`, `/screen`, `/image`, and their GUI variants are no longer registered.
 
 Use:

@@ -72,7 +72,7 @@ public class VideoCommands implements CommandExecutor, TabCompleter {
 	public boolean onCommand(CommandSender sender, Command cmd, String name, String[] arg3) {
 		
 		if(cmd.getName().equalsIgnoreCase("video")) {
-			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.video", "mediaplayer.command.video")) {
+			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.video")) {
 								
 				if(arg3.length >= 2) {
 					if(arg3[0].equalsIgnoreCase("download")) {
@@ -836,7 +836,7 @@ public class VideoCommands implements CommandExecutor, TabCompleter {
 		}
 		
 		if(cmd.getName().equalsIgnoreCase("videos")) {
-			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.videos", "mediaplayer.command.videos")) {
+			if(PermissionUtil.hasPermission(sender, "movietheatrecore.command.videos")) {
 				
 				if(arg3.length == 1) {
 					if(arg3[0].equalsIgnoreCase("reload")) {		
