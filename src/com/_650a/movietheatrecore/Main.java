@@ -37,7 +37,6 @@ import com._650a.movietheatrecore.actionbar.ActionBarVersion;
 import com._650a.movietheatrecore.audio.util.AudioUtilVersion;
 import com._650a.movietheatrecore.audio.AudioPackManager;
 import com._650a.movietheatrecore.commands.MovieTheatreCoreCommands;
-import com._650a.movietheatrecore.commands.LegacyCommandListener;
 import com._650a.movietheatrecore.configuration.Configuration;
 import com._650a.movietheatrecore.configuration.updater.ConfigurationUpdater;
 import com._650a.movietheatrecore.dependency.DependencyManager;
@@ -300,7 +299,6 @@ public class Main extends JavaPlugin implements Listener {
 	        guiSupport = GuiSupportFactory.create(this);
 	        guiSupport.register();
 
-	        Bukkit.getServer().getPluginManager().registerEvents(new LegacyCommandListener(), this);
 	        Bukkit.getServer().getPluginManager().registerEvents(new AdminToolListener(this), this);
 	        Bukkit.getServer().getPluginManager().registerEvents(new AdminMenuListener(this), this);
 	        Bukkit.getServer().getPluginManager().registerEvents(new InventoryClickVideos(), this);

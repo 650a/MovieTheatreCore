@@ -48,6 +48,7 @@ public class Configuration {
 	private final File tmpFolder = new File(plugin.getDataFolder() + "/tmp/");
 	
 	private FileConfiguration fileconfiguration;
+	private final java.util.List<String> migrationNotes = new java.util.ArrayList<>();
 	
     /**
      * Creates the configuration file containing all plugin parametters and messages.
@@ -124,7 +125,6 @@ public class Configuration {
 			fileconfiguration.set("youtube.cookies-path", "plugins/MovieTheatreCore/youtube-cookies.txt");
 			fileconfiguration.set("youtube.require-cookies", false);
 
-			fileconfiguration.set("audio.enabled", false);
 			fileconfiguration.set("audio.chunk-seconds", 2);
 			fileconfiguration.set("audio.codec", "vorbis");
 			fileconfiguration.set("audio.sample-rate", 48000);
@@ -137,6 +137,7 @@ public class Configuration {
 			fileconfiguration.set("theatre.default-zone-radius", 16);
 			fileconfiguration.set("theatre.schedule-check-interval-seconds", 30);
 
+			fileconfiguration.set("pack.public-base-url", "");
 			fileconfiguration.set("resource_pack.url", "");
 			fileconfiguration.set("resource_pack.sha1", "");
 			fileconfiguration.set("resource_pack.assets-hash", "");
@@ -205,6 +206,9 @@ public class Configuration {
 			if(migrateConfiguration(fileconfiguration)) {
 				fileconfiguration.save(configurationFile);
 				Bukkit.getLogger().info("[MovieTheatreCore]: configuration.yml migrated with new defaults (existing values preserved).");
+				for (String note : migrationNotes) {
+					Bukkit.getLogger().info("[MovieTheatreCore]: " + note);
+				}
 			}
 		}catch (InvalidConfigurationException e) {
 			Bukkit.getLogger().warning("[MovieTheatreCore]: Invalid configuration.yml. Check for unquoted wildcards like *.domain.com; allowlist entries will be ignored until fixed.");
@@ -625,10 +629,6 @@ public class Configuration {
 		return getBooleanValue("youtube.require-cookies", null, false);
 	}
 
-	public boolean audio_enabled() {
-		return getBooleanValue("audio.enabled", "audio.enabled", false);
-	}
-
 	public int audio_chunk_seconds() {
 		return getIntValue("audio.chunk-seconds", "audio.chunk-seconds", 2);
 	}
@@ -667,6 +667,14 @@ public class Configuration {
 
 	public int theatre_schedule_check_interval_seconds() {
 		return getIntValue("theatre.schedule-check-interval-seconds", null, 30);
+	}
+
+	public String pack_public_base_url() {
+		String value = getStringValue("pack.public-base-url", null, "");
+		if (value != null && value.endsWith("/")) {
+			return value.substring(0, value.length() - 1);
+		}
+		return value;
 	}
 
 	public String resourcepack_host_url() {
@@ -759,6 +767,7 @@ public class Configuration {
 	}
 
 	private boolean migrateConfiguration(FileConfiguration configuration) {
+		migrationNotes.clear();
 		boolean changed = false;
 		changed |= ensureString(configuration, "general.language", "plugin.langage", DEFAULT_LANGUAGE);
 		changed |= ensureBoolean(configuration, "general.auto-update", "plugin.auto-update", true);
@@ -815,10 +824,10 @@ public class Configuration {
 			java.util.List<String> allowedDomains = configuration.getStringList("sources.allowed-domains");
 			String mode = (allowedDomains != null && !allowedDomains.isEmpty()) ? "STRICT" : "OFF";
 			configuration.set("sources.allowlist-mode", mode);
+			migrationNotes.add("Updated sources.allowlist-mode to " + mode + " (derived from allowed domains).");
 			changed = true;
 		}
 
-		changed |= ensureBoolean(configuration, "audio.enabled", "audio.enabled", false);
 		changed |= ensureInt(configuration, "audio.chunk-seconds", "audio.chunk-seconds", 2);
 		changed |= ensureString(configuration, "audio.codec", "audio.codec", "vorbis");
 		changed |= ensureInt(configuration, "audio.sample-rate", "audio.sample-rate", 48000);
@@ -831,6 +840,7 @@ public class Configuration {
 		changed |= ensureInt(configuration, "theatre.default-zone-radius", null, 16);
 		changed |= ensureInt(configuration, "theatre.schedule-check-interval-seconds", null, 30);
 
+		changed |= ensurePackPublicBaseUrl(configuration);
 		changed |= ensureString(configuration, "resource_pack.url", "resourcepack.host-url", "");
 		changed |= ensureString(configuration, "resource_pack.sha1", "resourcepack.sha1", "");
 		changed |= ensureString(configuration, "resource_pack.assets-hash", null, "");
@@ -855,6 +865,9 @@ public class Configuration {
 		changed |= migratePathValue(configuration, "dependencies.install.directory");
 		changed |= migratePathValue(configuration, "dependencies.install.exec-directory");
 		changed |= migratePathValue(configuration, "advanced.tmp-dir");
+		if (configuration.contains("audio.enabled")) {
+			migrationNotes.add("Deprecated key detected: audio.enabled (audio is now always automatic; the value is ignored).");
+		}
 		return changed;
 	}
 
@@ -867,6 +880,7 @@ public class Configuration {
 			value = defaultValue;
 		}
 		configuration.set(newKey, value);
+		recordMigration(newKey, value, legacyKey, configuration);
 		return true;
 	}
 
@@ -883,6 +897,7 @@ public class Configuration {
 				.replace(legacyFolder.toLowerCase(Locale.ROOT), "plugins/MovieTheatreCore");
 		if (!migrated.equals(value)) {
 			configuration.set(key, migrated);
+			migrationNotes.add("Updated " + key + " to " + migrated + " (migrated legacy path).");
 			return true;
 		}
 		return false;
@@ -900,6 +915,7 @@ public class Configuration {
 				? configuration.getBoolean(legacyKey)
 				: defaultValue;
 		configuration.set(newKey, value);
+		recordMigration(newKey, value, legacyKey, configuration);
 		return true;
 	}
 
@@ -911,6 +927,7 @@ public class Configuration {
 				? configuration.getInt(legacyKey)
 				: defaultValue;
 		configuration.set(newKey, value);
+		recordMigration(newKey, value, legacyKey, configuration);
 		return true;
 	}
 
@@ -922,6 +939,7 @@ public class Configuration {
 				? configuration.getLong(legacyKey)
 				: defaultValue;
 		configuration.set(newKey, value);
+		recordMigration(newKey, value, legacyKey, configuration);
 		return true;
 	}
 
@@ -933,6 +951,7 @@ public class Configuration {
 				? configuration.getDouble(legacyKey)
 				: defaultValue;
 		configuration.set(newKey, value);
+		recordMigration(newKey, value, legacyKey, configuration);
 		return true;
 	}
 
@@ -944,7 +963,31 @@ public class Configuration {
 				? configuration.getStringList(legacyKey)
 				: java.util.Collections.emptyList();
 		configuration.set(newKey, value);
+		recordMigration(newKey, value, legacyKey, configuration);
 		return true;
+	}
+
+	private boolean ensurePackPublicBaseUrl(FileConfiguration configuration) {
+		if (configuration.contains("pack.public-base-url")) {
+			return false;
+		}
+		String legacy = configuration.getString("resource_pack.server.public-url");
+		if (legacy == null || legacy.isBlank()) {
+			legacy = configuration.getString("resource_pack.url");
+			if (legacy != null && legacy.endsWith("/pack.zip")) {
+				legacy = legacy.substring(0, legacy.length() - "/pack.zip".length());
+			}
+		}
+		String value = legacy == null ? "" : legacy;
+		configuration.set("pack.public-base-url", value);
+		recordMigration("pack.public-base-url", value, "resource_pack.server.public-url", configuration);
+		return true;
+	}
+
+	private void recordMigration(String key, Object value, String legacyKey, FileConfiguration configuration) {
+		boolean fromLegacy = legacyKey != null && configuration.contains(legacyKey);
+		String source = fromLegacy ? (" (from " + legacyKey + ")") : "";
+		migrationNotes.add("Added " + key + " = " + String.valueOf(value) + source + ".");
 	}
 
 	private String getStringValue(String newKey, String legacyKey, String defaultValue) {

@@ -109,19 +109,16 @@ public class EmbeddedPackServer {
     }
 
     private String resolvePublicBaseUrl() {
-        String override = configuration.resourcepack_server_public_url();
+        String override = configuration.pack_public_base_url();
         if (override != null && !override.isBlank()) {
             return trimTrailingSlash(override.trim());
         }
 
-        String host = boundHost;
-        if (host == null || host.isBlank() || host.equals("0.0.0.0") || host.equals("127.0.0.1") || host.equals("localhost")) {
-            host = plugin.getServer().getIp();
+        override = configuration.resourcepack_server_public_url();
+        if (override != null && !override.isBlank()) {
+            return trimTrailingSlash(override.trim());
         }
-        if (host == null || host.isBlank()) {
-            host = "localhost";
-        }
-        return "http://" + host + ":" + boundPort;
+        return null;
     }
 
     private String trimTrailingSlash(String value) {

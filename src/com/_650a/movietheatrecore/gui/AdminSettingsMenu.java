@@ -31,7 +31,7 @@ public class AdminSettingsMenu {
 
         inventory.setItem(11, menuItem(Material.REPEATER, ChatColor.GREEN + "Reload plugin", "Reload screens and theatre data."));
         inventory.setItem(13, menuItem(Material.BOOK, ChatColor.GOLD + "Dependency status", "Show dependency health in chat."));
-        inventory.setItem(15, menuItem(Material.NOTE_BLOCK, ChatColor.AQUA + "Pack status", "Show audio pack status in chat."));
+        inventory.setItem(15, menuItem(Material.NOTE_BLOCK, ChatColor.AQUA + "Pack status", "Show resource pack status in chat."));
 
         return inventory;
     }

@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -57,11 +58,20 @@ public class AdminToolListener implements Listener {
         if (!itemStacks.isAdminTool(current) && !itemStacks.isAdminTool(cursor)) {
             return;
         }
-        if (event.getClickedInventory() != null && !(event.getWhoClicked() instanceof Player)) {
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (itemStacks.isAdminTool(event.getOldCursor()) || itemStacks.isAdminTool(event.getCursor())) {
+            event.setCancelled(true);
             return;
         }
-        if (event.getClickedInventory() != null && !event.getClickedInventory().equals(event.getWhoClicked().getInventory())) {
-            event.setCancelled(true);
+        for (ItemStack item : event.getNewItems().values()) {
+            if (itemStacks.isAdminTool(item)) {
+                event.setCancelled(true);
+                return;
+            }
         }
     }
 

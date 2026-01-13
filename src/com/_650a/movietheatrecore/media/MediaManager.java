@@ -90,9 +90,10 @@ public class MediaManager {
                 if (!configFile.exists()) {
                     video.createConfiguration(videoFile);
                 }
-                if (configuration.audio_enabled()) {
-                    audioPackManager.prepare(entry, videoFile);
-                    library.save();
+                AudioPackManager.AudioPreparation preparation = audioPackManager.prepare(entry, videoFile);
+                library.save();
+                if (preparation.error() != null) {
+                    scheduler.runSync(() -> sender.sendMessage(ChatColor.YELLOW + "Media added, but audio pack not ready: " + preparation.error()));
                 }
                 library.addEntry(entry);
                 reloadVideos();
@@ -182,15 +183,18 @@ public class MediaManager {
                     });
                     return;
                 }
-                AudioTrack track = null;
-                boolean allowAudio = configuration.audio_enabled();
-                if (allowAudio) {
-                    track = audioPackManager.prepare(entry, videoFile);
-                    library.save();
-                    if (track == null) {
-                        allowAudio = false;
-                    }
+                AudioPackManager.AudioPreparation preparation = audioPackManager.prepare(entry, videoFile);
+                library.save();
+                if (preparation.error() != null) {
+                    scheduler.runSync(() -> {
+                        if (onError != null) {
+                            onError.accept(preparation.error());
+                        }
+                    });
+                    return;
                 }
+                AudioTrack track = preparation.track();
+                boolean allowAudio = preparation.isReady();
                 PlaybackOptions options = new PlaybackOptions(allowAudio, entry, track);
                 MediaPlayback playback = new MediaPlayback(video, options, entry);
                 scheduler.runSync(() -> {
@@ -267,15 +271,14 @@ public class MediaManager {
                     scheduler.runSync(() -> sender.sendMessage(ChatColor.YELLOW + "Media is loading. Try again shortly."));
                     return;
                 }
-                AudioTrack track = null;
-                boolean allowAudio = configuration.audio_enabled();
-                if (allowAudio) {
-                    track = audioPackManager.prepare(entry, videoFile);
-                    library.save();
-                    if (track == null) {
-                        allowAudio = false;
-                    }
+                AudioPackManager.AudioPreparation preparation = audioPackManager.prepare(entry, videoFile);
+                library.save();
+                if (preparation.error() != null) {
+                    scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + preparation.error()));
+                    return;
                 }
+                AudioTrack track = preparation.track();
+                boolean allowAudio = preparation.isReady();
                 PlaybackOptions options = new PlaybackOptions(allowAudio, entry, track);
                 scheduler.runSync(() -> plugin.getPlaybackManager().start(screen, video, options));
                 scheduler.runSync(() -> sender.sendMessage(ChatColor.GREEN + "Playing media " + entry.getName() + " on " + screen.getName() + "."));
@@ -314,18 +317,11 @@ public class MediaManager {
         if (configFolder.exists()) {
             FileUtils.deleteDirectory(configFolder);
         }
-        File packFile = new File(configuration.getResourcePackFolder(), entry.getId() + ".zip");
-        if (packFile.exists()) {
-            packFile.delete();
-        }
-        File packFolder = new File(configuration.getResourcePackFolder(), entry.getId());
-        if (packFolder.exists()) {
-            FileUtils.deleteDirectory(packFolder);
-        }
         File audioFolder = new File(configuration.getAudioChunksFolder(), entry.getId());
         if (audioFolder.exists()) {
             FileUtils.deleteDirectory(audioFolder);
         }
+        audioPackManager.rebuildPackAsync();
     }
 
     private void reloadVideos() {
@@ -354,7 +350,7 @@ public class MediaManager {
         try {
             uri = new URI(url);
         } catch (URISyntaxException e) {
-            return "Invalid URL format. Use a YouTube link, direct MP4/WEBM, or MediaFire direct download link.";
+            return "Invalid URL format. Use a YouTube link, direct MP4/WEBM/M3U8, or MediaFire direct download link.";
         }
         String scheme = uri.getScheme();
         if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
@@ -367,18 +363,23 @@ public class MediaManager {
 
         String normalizedHost = host.toLowerCase(Locale.ROOT);
         String extension = FilenameUtils.getExtension(uri.getPath()).toLowerCase(Locale.ROOT);
-        boolean extensionAllowed = extension.equals("mp4") || extension.equals("webm");
+        boolean extensionAllowed = extension.equals("mp4") || extension.equals("webm") || extension.equals("m3u8");
 
         MediaHeadInfo head = fetchHeadInfo(url);
         if (head != null && head.statusCode >= 200 && head.statusCode < 400) {
             String contentType = head.contentType == null ? "" : head.contentType.toLowerCase(Locale.ROOT);
             boolean contentTypeVideo = contentType.contains("video/mp4") || contentType.contains("video/webm");
+            boolean contentTypeStream = contentType.contains("application/vnd.apple.mpegurl")
+                    || contentType.contains("application/x-mpegurl");
             boolean contentTypeHtml = contentType.contains("text/html");
             if (contentTypeVideo) {
                 return null;
             }
+            if (contentTypeStream) {
+                return null;
+            }
             if (contentTypeHtml) {
-                return "URL does not point to a downloadable MP4/WEBM stream.";
+                return "URL does not point to a downloadable MP4/WEBM/M3U8 stream.";
             }
             if (extensionAllowed) {
                 return null;
@@ -389,7 +390,7 @@ public class MediaManager {
             return null;
         }
 
-        return "URL must point to a direct MP4/WEBM file (including MediaFire direct links).";
+        return "URL must point to a direct MP4/WEBM/M3U8 file (including MediaFire direct links).";
     }
 
     private String resolveUrl(CommandSender sender, String url) {

@@ -657,6 +657,22 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ChatColor.GREEN + "MovieTheatreCore reloaded.");
                 return true;
             }
+            case "debug" -> {
+                if (!PermissionUtil.hasPermission(sender, "movietheatrecore.admin")) {
+                    sender.sendMessage(configuration.insufficient_permissions());
+                    return true;
+                }
+                if (filteredArgs.size() < 2) {
+                    sendDebugHelp(sender);
+                    return true;
+                }
+                if (filteredArgs.get(1).equalsIgnoreCase("pack")) {
+                    sendPackDebug(sender);
+                    return true;
+                }
+                sendDebugHelp(sender);
+                return true;
+            }
             default -> {
                 sendHelp(sender);
                 return true;
@@ -673,7 +689,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         try {
             if (args.length == 1) {
-                List<String> candidates = List.of("screen", "media", "play", "stop", "pause", "resume", "scale", "reload", "diagnose", "update", "pack", "deps", "theatre", "admin");
+                List<String> candidates = List.of("screen", "media", "play", "stop", "pause", "resume", "scale", "reload", "diagnose", "update", "pack", "deps", "theatre", "admin", "debug");
                 StringUtil.copyPartialMatches(args[0], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("screen")) {
                 List<String> candidates = List.of("create", "delete", "list");
@@ -686,6 +702,9 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 StringUtil.copyPartialMatches(args[3], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("pack")) {
                 List<String> candidates = List.of("status", "rebuild", "url");
+                StringUtil.copyPartialMatches(args[1], candidates, completions);
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
+                List<String> candidates = List.of("pack");
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("deps")) {
                 List<String> candidates = List.of("status", "reinstall");
@@ -778,6 +797,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mtc pack status");
         sender.sendMessage(ChatColor.YELLOW + "/mtc pack rebuild");
         sender.sendMessage(ChatColor.YELLOW + "/mtc pack url");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc debug pack");
         sender.sendMessage(ChatColor.YELLOW + "/mtc deps status");
         sender.sendMessage(ChatColor.YELLOW + "/mtc deps reinstall");
         sender.sendMessage(ChatColor.YELLOW + "/mtc admin");
@@ -844,6 +864,11 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mtc pack url");
     }
 
+    private void sendDebugHelp(CommandSender sender) {
+        sender.sendMessage(ChatColor.GOLD + "Debug commands:");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc debug pack");
+    }
+
     private void sendDepsHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "Dependency commands:");
         sender.sendMessage(ChatColor.YELLOW + "/mtc deps status");
@@ -885,17 +910,16 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         boolean enabled = configuration.resourcepack_server_enabled();
         boolean running = server.isRunning();
         String bind = configuration.resourcepack_server_bind() + ":" + configuration.resourcepack_server_port();
-        String publicUrl = configuration.resourcepack_server_public_url();
+        String publicUrl = configuration.pack_public_base_url();
         String packUrl = packManager.getPackUrl();
         String sha1 = packManager.getPackSha1();
         long lastBuild = packManager.getLastBuildMillis();
 
         sender.sendMessage(ChatColor.GOLD + "MovieTheatreCore pack status:");
-        sender.sendMessage(ChatColor.GRAY + "Audio enabled: " + yesNo(configuration.audio_enabled()));
         sender.sendMessage(ChatColor.GRAY + "Server enabled: " + yesNo(enabled));
         sender.sendMessage(ChatColor.GRAY + "Server running: " + yesNo(running));
         sender.sendMessage(ChatColor.GRAY + "Bind: " + bind);
-        sender.sendMessage(ChatColor.GRAY + "Public URL override: " + (publicUrl == null || publicUrl.isBlank() ? "none" : publicUrl));
+        sender.sendMessage(ChatColor.GRAY + "Public base URL: " + (publicUrl == null || publicUrl.isBlank() ? "not set" : publicUrl));
         sender.sendMessage(ChatColor.GRAY + "Pack URL: " + (packUrl == null ? "n/a" : packUrl));
         sender.sendMessage(ChatColor.GRAY + "Pack SHA1: " + (sha1 == null || sha1.isBlank() ? "n/a" : sha1));
         sender.sendMessage(ChatColor.GRAY + "Last build: " + formatTimestamp(lastBuild));
@@ -913,11 +937,38 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         String url = packManager.getPackUrl();
         String sha1 = packManager.getPackSha1();
         if (url == null || url.isBlank()) {
-            sender.sendMessage(ChatColor.RED + "Pack URL not configured. Enable the internal server or set resource_pack.url.");
+            sender.sendMessage(ChatColor.RED + "Pack URL not configured. Set pack.public-base-url to your HTTPS host.");
             return;
         }
         sender.sendMessage(ChatColor.GREEN + "Pack URL: " + url);
         sender.sendMessage(ChatColor.GREEN + "Pack SHA1: " + (sha1 == null || sha1.isBlank() ? "n/a" : sha1));
+    }
+
+    private void sendPackDebug(CommandSender sender) {
+        com._650a.movietheatrecore.audio.AudioPackManager packManager = plugin.getAudioPackManager();
+        if (packManager == null) {
+            sender.sendMessage(ChatColor.RED + "Pack manager not available.");
+            return;
+        }
+        com._650a.movietheatrecore.audio.AudioPackManager.PackDiagnostics diagnostics = packManager.getDiagnostics();
+        com._650a.movietheatrecore.audio.AudioPackManager.PackValidationResult validation = packManager.validatePackUrl();
+
+        sender.sendMessage(ChatColor.GOLD + "MovieTheatreCore pack debug:");
+        sender.sendMessage(ChatColor.GRAY + "Public base URL: " + (diagnostics.publicBaseUrl() == null || diagnostics.publicBaseUrl().isBlank() ? "not set" : diagnostics.publicBaseUrl()));
+        sender.sendMessage(ChatColor.GRAY + "Internal port: " + diagnostics.internalPort());
+        sender.sendMessage(ChatColor.GRAY + "Pack URL: " + (diagnostics.packUrl() == null ? "n/a" : diagnostics.packUrl()));
+        sender.sendMessage(ChatColor.GRAY + "Pack SHA1: " + (diagnostics.sha1() == null || diagnostics.sha1().isBlank() ? "n/a" : diagnostics.sha1()));
+        sender.sendMessage(ChatColor.GRAY + "Pack size: " + diagnostics.packSize() + " bytes");
+        sender.sendMessage(ChatColor.GRAY + "Last build: " + formatTimestamp(diagnostics.lastBuild()));
+        sender.sendMessage(ChatColor.GRAY + "Curl test: " + (diagnostics.curlUrl() == null ? "n/a" : diagnostics.curlUrl()));
+        if (validation != null) {
+            for (String warning : validation.warnings()) {
+                sender.sendMessage(ChatColor.YELLOW + "Warning: " + warning);
+            }
+            for (String error : validation.errors()) {
+                sender.sendMessage(ChatColor.RED + "Error: " + error);
+            }
+        }
     }
 
     private void sendDiagnostics(CommandSender sender) {

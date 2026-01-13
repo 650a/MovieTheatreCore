@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -24,6 +26,7 @@ import org.bukkit.command.CommandSender;
 
 import com._650a.movietheatrecore.Main;
 import com._650a.movietheatrecore.configuration.Configuration;
+import com._650a.movietheatrecore.ffmpeg.FFprobeService;
 import com._650a.movietheatrecore.media.MediaEntry;
 import com._650a.movietheatrecore.resourcepack.EmbeddedPackServer;
 import com._650a.movietheatrecore.resourcepack.ResourcePack;
@@ -36,6 +39,7 @@ public class AudioPackManager {
     private final Configuration configuration;
     private final Scheduler scheduler;
     private final EmbeddedPackServer packServer;
+    private final FFprobeService ffprobeService = new FFprobeService();
     private final Object buildLock = new Object();
     private boolean warnedMissingPackUrl = false;
 
@@ -55,19 +59,32 @@ public class AudioPackManager {
         packServer.start();
     }
 
-    public AudioTrack prepare(MediaEntry entry, File mediaFile) throws IOException {
-        if (!configuration.audio_enabled()) {
-            return null;
+    public AudioPreparation prepare(MediaEntry entry, File mediaFile) throws IOException {
+        boolean hasAudio = hasAudioStream(mediaFile);
+        if (!hasAudio) {
+            entry.setAudioSha1(null);
+            entry.setAudioChunks(0);
+            return AudioPreparation.noAudio();
         }
+
         boolean entryChanged = ensureAudioChunks(entry, mediaFile);
 
         String packUrl = resolvePackUrl();
         if (packUrl == null || packUrl.isBlank()) {
             warnMissingPackUrl();
-            return null;
+            return AudioPreparation.error("Resource pack URL not configured. Set pack.public-base-url to your HTTPS pack host.", null);
+        }
+        if (!configuration.resourcepack_server_enabled()) {
+            return AudioPreparation.error("Pack server is disabled. Enable resource_pack.server.enabled to serve pack.zip.", null);
         }
 
         ensurePackReady(entryChanged);
+
+        PackValidationResult validation = validatePackUrl(packUrl);
+        logValidationWarnings(validation);
+        if (validation.hasErrors()) {
+            return AudioPreparation.error("Resource pack URL validation failed. Fix the pack host and try again.", validation);
+        }
 
         int chunkCount = entry.getAudioChunks();
         if (chunkCount <= 0) {
@@ -76,7 +93,10 @@ public class AudioPackManager {
         }
 
         byte[] sha1 = decodeSha1(configuration.resourcepack_sha1());
-        return new AudioTrack(entry.getId(), chunkCount, configuration.audio_chunk_seconds(), packUrl, sha1);
+        if (sha1 == null || sha1.length == 0) {
+            return AudioPreparation.error("Resource pack SHA1 is missing. Rebuild the pack and try again.", validation);
+        }
+        return AudioPreparation.ready(new AudioTrack(entry.getId(), chunkCount, configuration.audio_chunk_seconds(), packUrl, sha1), validation);
     }
 
     public void rebuildPackAsync(CommandSender sender) {
@@ -88,6 +108,16 @@ public class AudioPackManager {
                 scheduler.runSync(() -> sender.sendMessage("Resource pack rebuilt. URL: " + (url == null ? "n/a" : url) + " SHA1: " + sha1));
             } catch (IOException e) {
                 scheduler.runSync(() -> sender.sendMessage("Failed to rebuild resource pack: " + e.getMessage()));
+            }
+        });
+    }
+
+    public void rebuildPackAsync() {
+        scheduler.runAsync(() -> {
+            try {
+                ensurePackReady(true);
+            } catch (IOException e) {
+                plugin.getLogger().warning("[MovieTheatreCore]: Failed to rebuild resource pack: " + e.getMessage());
             }
         });
     }
@@ -124,9 +154,24 @@ public class AudioPackManager {
         return packServer;
     }
 
+    public PackDiagnostics getDiagnostics() {
+        String baseUrl = configuration.pack_public_base_url();
+        int port = configuration.resourcepack_server_port();
+        String sha1 = configuration.resourcepack_sha1();
+        long size = packFile.exists() ? packFile.length() : 0L;
+        long lastBuild = configuration.resourcepack_last_build();
+        String packUrl = resolvePackUrl();
+        String curlUrl = packUrl == null ? null : "curl -I \"" + packUrl + "\"";
+        return new PackDiagnostics(baseUrl, port, sha1, size, lastBuild, packUrl, curlUrl);
+    }
+
+    public PackValidationResult validatePackUrl() {
+        return validatePackUrl(resolvePackUrl());
+    }
+
     private void warnMissingPackUrl() {
         if (!warnedMissingPackUrl) {
-            plugin.getLogger().warning("[MovieTheatreCore]: audio enabled but no pack URL configured (enable internal server or set resource_pack.url).");
+            plugin.getLogger().warning("[MovieTheatreCore]: Resource pack URL not configured. Set pack.public-base-url to your HTTPS host.");
             warnedMissingPackUrl = true;
         }
     }
@@ -164,6 +209,11 @@ public class AudioPackManager {
         int count = countChunks(entry);
         entry.setAudioChunks(count);
         return missing || changed;
+    }
+
+    private boolean hasAudioStream(File mediaFile) throws IOException {
+        FFprobeService.ProbeResult probe = ffprobeService.probe(mediaFile);
+        return probe.audioStreams > 0;
     }
 
     private File getAudioChunksFolder(MediaEntry entry) {
@@ -271,19 +321,95 @@ public class AudioPackManager {
     }
 
     private String resolvePackBaseUrl() {
+        String configured = configuration.pack_public_base_url();
+        if (configured != null && !configured.isBlank()) {
+            return normalizeBaseUrl(configured);
+        }
         if (configuration.resourcepack_server_enabled()) {
             if (!packServer.isRunning()) {
                 packServer.start();
             }
             if (packServer.isRunning()) {
-                return packServer.getPublicBaseUrl();
+                String serverUrl = packServer.getPublicBaseUrl();
+                if (serverUrl != null && !serverUrl.isBlank()) {
+                    return serverUrl;
+                }
             }
         }
         String host = configuration.resourcepack_host_url();
         if (host != null && !host.isBlank()) {
-            return host.endsWith("/") ? host.substring(0, host.length() - 1) : host;
+            return normalizeBaseUrl(host);
         }
         return null;
+    }
+
+    private String normalizeBaseUrl(String baseUrl) {
+        String trimmed = baseUrl.trim();
+        if (trimmed.endsWith("/pack.zip")) {
+            trimmed = trimmed.substring(0, trimmed.length() - "/pack.zip".length());
+        }
+        if (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
+    }
+
+    private PackValidationResult validatePackUrl(String packUrl) {
+        List<String> warnings = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        if (packUrl == null || packUrl.isBlank()) {
+            errors.add("Pack URL is missing.");
+            return new PackValidationResult(warnings, errors);
+        }
+        try {
+            URL url = new URL(packUrl);
+            if (!"https".equalsIgnoreCase(url.getProtocol())) {
+                warnings.add("Pack URL is not HTTPS. Public packs should be served over HTTPS.");
+            }
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setInstanceFollowRedirects(false);
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            connection.setRequestMethod("HEAD");
+            int status = connection.getResponseCode();
+            if (status == 405) {
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setInstanceFollowRedirects(false);
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Range", "bytes=0-0");
+                status = connection.getResponseCode();
+            }
+            String contentType = connection.getHeaderField("Content-Type");
+            String location = connection.getHeaderField("Location");
+
+            if (status >= 300 && status < 400) {
+                warnings.add("Pack URL redirected (" + status + ") to: " + location);
+            } else if (status >= 400) {
+                errors.add("Pack URL returned HTTP " + status + ".");
+            }
+
+            if (contentType != null && contentType.toLowerCase(java.util.Locale.ROOT).contains("text/html")) {
+                errors.add("Pack URL returned HTML instead of a ZIP file.");
+            } else if (contentType != null && !contentType.isBlank()
+                    && !contentType.toLowerCase(java.util.Locale.ROOT).contains("zip")
+                    && !contentType.toLowerCase(java.util.Locale.ROOT).contains("octet-stream")) {
+                warnings.add("Pack content-type is " + contentType + " (expected application/zip).");
+            }
+        } catch (IOException e) {
+            errors.add("Pack URL unreachable: " + e.getMessage());
+        }
+        return new PackValidationResult(warnings, errors);
+    }
+
+    private void logValidationWarnings(PackValidationResult result) {
+        if (result == null || result.warnings().isEmpty()) {
+            return;
+        }
+        for (String warning : result.warnings()) {
+            plugin.getLogger().warning("[MovieTheatreCore]: Pack check warning: " + warning);
+        }
     }
 
     private void extractChunks(File mediaFile, File chunkFolder) throws IOException {
@@ -394,5 +520,33 @@ public class AudioPackManager {
                     + Character.digit(sha1.charAt(i + 1), 16));
         }
         return data;
+    }
+
+    public record PackDiagnostics(String publicBaseUrl, int internalPort, String sha1, long packSize, long lastBuild,
+                                   String packUrl, String curlUrl) {
+    }
+
+    public record PackValidationResult(List<String> warnings, List<String> errors) {
+        public boolean hasErrors() {
+            return errors != null && !errors.isEmpty();
+        }
+    }
+
+    public record AudioPreparation(boolean hasAudio, AudioTrack track, PackValidationResult validation, String error) {
+        public static AudioPreparation noAudio() {
+            return new AudioPreparation(false, null, null, null);
+        }
+
+        public static AudioPreparation ready(AudioTrack track, PackValidationResult validation) {
+            return new AudioPreparation(true, track, validation, null);
+        }
+
+        public static AudioPreparation error(String message, PackValidationResult validation) {
+            return new AudioPreparation(true, null, validation, message);
+        }
+
+        public boolean isReady() {
+            return track != null && error == null;
+        }
     }
 }

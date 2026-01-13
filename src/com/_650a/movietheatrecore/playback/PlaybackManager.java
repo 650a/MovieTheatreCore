@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerResourcePackStatusEvent.Status;
+
 import com._650a.movietheatrecore.Main;
 import com._650a.movietheatrecore.screen.Screen;
 import com._650a.movietheatrecore.screen.ScreenManager;
@@ -81,5 +84,11 @@ public class PlaybackManager {
     public void clearSession(UUID screenId, ScreenState state) {
         sessions.remove(screenId);
         screenManager.setState(screenId, state == null ? ScreenState.IDLE : state);
+    }
+
+    public void handleResourcePackStatus(Player player, Status status) {
+        for (PlaybackSession session : sessions.values()) {
+            session.handleResourcePackStatus(player, status);
+        }
     }
 }

@@ -1,118 +1,228 @@
 # MovieTheatreCore User Guide
 
-## What MovieTheatreCore does
-MovieTheatreCore lets you build in‑game cinemas with multiple screens, schedule shows, and play synchronized video + audio for nearby players. Media downloads, caching, and playback are fully handled by the plugin.
+MovieTheatreCore lets you build in-game cinemas with multiple screens, schedule shows, and play synchronized video + audio for nearby players. Everything is automatic: media downloads, resource packs, and audio syncing are handled for you.
 
-## First‑time setup (recommended order)
-1. **Install the plugin** by placing `MovieTheatreCore.jar` in `plugins/`.
-2. **Start the server once** so the plugin creates `plugins/MovieTheatreCore/`.
-3. **Check dependencies** with `/mtc deps status` (ffmpeg/ffprobe/yt‑dlp/deno).
-4. **Create a screen** with `/mtc screen create <name> <width> <height>`.
-5. **Add media** with `/mtc media add`.
-6. **Play media** with `/mtc play <screen> media <name>`.
+---
 
-> On first run, MovieTheatreCore copies `USER_GUIDE.md` into the plugin folder as a **read‑only** reference file.
+## 1) Installation (all environments)
 
-## Supported media sources (validated before download)
-MovieTheatreCore only accepts real, downloadable media streams. The following sources are supported:
+1. **Install the plugin**
+   - Place `MovieTheatreCore.jar` in your server’s `plugins/` directory.
 
-1. **YouTube** (via yt‑dlp)
-2. **Direct MP4 / WEBM URLs**
-3. **MediaFire direct download links** (must point straight to the file)
+2. **Start the server once**
+   - MovieTheatreCore will create `plugins/MovieTheatreCore/` and install runtime dependencies.
 
-If the URL is not a valid downloadable MP4/WEBM stream, MovieTheatreCore will refuse to create the media entry and show a friendly error.
+3. **Verify dependencies**
+   - Run:
+     ```
+     /mtc deps status
+     ```
+   - Ensure **ffmpeg** and **ffprobe** are available.
 
-### Examples
-- **YouTube**
+---
+
+## 2) Pterodactyl/Wings requirements (resource pack hosting)
+
+MovieTheatreCore serves a **single rolling resource pack** that includes audio for all media. Players download it from an HTTPS URL you provide.
+
+### Requirements
+- You **must** provide a public HTTPS URL for the pack.
+- The pack must be reachable at:
   ```
-  /mtc media add Trailer yt dQw4w9WgXcQ
-  ```
-- **Direct MP4/WEBM**
-  ```
-  /mtc media add Intro https://example.com/intro.mp4
-  ```
-- **MediaFire direct download**
-  ```
-  /mtc media add Clip https://download.mediafire.com/.../clip.webm
+  https://your-pack-domain.example/pack.zip
   ```
 
-## Audio (fully automatic)
-Audio is **automatic**—no extra commands required.
+### Recommended setup (Pterodactyl + reverse proxy)
+1. Open or proxy the internal pack server port (default `8123`).
+2. Put a reverse proxy (NGINX, Caddy, Traefik, etc.) in front of it.
+3. Ensure the proxy provides HTTPS.
+4. Set the base URL in the config:
+   ```yaml
+   pack:
+     public-base-url: "https://your-pack-domain.example"
+   ```
 
-- When you add media, MovieTheatreCore extracts audio with ffmpeg and converts it into Minecraft‑compatible chunks.
-- When you play media on a screen, the audio plays automatically and stays synced to video frames.
-- Only players within the screen’s audio range hear it.
+> The plugin runs behind NAT in Pterodactyl/Wings. **Do not** use `localhost` or private IPs for the public URL.
 
-> If `audio.enabled` is `false`, video will still play normally without audio.
+---
 
-## Screens & playback
-Create and manage screens with `/mtc screen`:
+## 3) DNS setup for the pack subdomain
+
+1. Create a DNS record (A or CNAME) for a subdomain, e.g.:
+   - `pack.yourdomain.example` → your proxy/server IP
+2. Configure HTTPS on that subdomain.
+3. Set `pack.public-base-url` to the **HTTPS** address.
+
+---
+
+## 4) Create a screen
 
 ```
 /mtc screen create Lobby 6 4
 /mtc screen list
-/mtc screen delete Lobby
 ```
 
-Play media on a screen:
+---
+
+## 5) Add media
+
+Supported media sources:
+- **YouTube links** (via yt-dlp)
+- **Direct MP4 / WEBM URLs**
+- **MediaFire direct download links** (must point directly to the file)
+- **M3U8 livestreams** (direct playlist URLs)
+
+Examples:
+
+**YouTube**
+```
+/mtc media add Trailer yt dQw4w9WgXcQ
+```
+
+**Direct MP4/WEBM**
+```
+/mtc media add Intro https://example.com/intro.mp4
+```
+
+**MediaFire direct download**
+```
+/mtc media add Clip https://download.mediafire.com/.../clip.webm
+```
+
+**Livestream (M3U8)**
+```
+/mtc play Lobby url https://example.com/live/stream.m3u8
+```
+
+---
+
+## 6) Play media
 
 ```
 /mtc play Lobby media Trailer
 ```
 
-## Admin GUI
-Use `/mtc admin` to receive the **MovieTheatreCore Admin Tool**. The item:
+---
 
-- **Cannot be dropped**
-- **Right‑click to open the admin GUI**
-- Provides quick access to **Media**, **Screens**, **Playback**, and **Settings**
-- Requires the `movietheatrecore.admin` permission
+## 7) Video + audio behavior (automatic)
 
-## YouTube cookies (tiered model)
-MovieTheatreCore follows a realistic, tiered approach to YouTube:
+- **Audio is always automatic.** There is no config toggle and no manual audio commands.
+- If a video contains audio, MovieTheatreCore extracts it and syncs it with the video.
+- Audio is heard **only by players within range** of the screen.
+- Playback **waits until the resource pack is applied** before starting.
 
-### Tier 1 (default)
-- yt‑dlp **without cookies**.
-- Works for many videos.
-- If blocked, you’ll see a clear error explaining the next steps.
+If a video has **no audio stream**, it will play silently (video still works).
 
-### Tier 2 (optional cookies)
-- Place `youtube-cookies.txt` in `plugins/MovieTheatreCore/`.
-- The plugin will warn you **before** failure if the cookies are expired.
-- Cookie expiration is normal and unavoidable—just re‑export them.
+---
 
-### Tier 3 (fallback when YouTube blocks)
-If YouTube is blocked even with cookies:
-1. Download the MP4 locally.
-2. Upload it to a direct host or MediaFire (direct download link).
-3. Add the new URL with `/mtc media add`.
+## 8) Resource packs (fully automatic)
 
-## Common errors & fixes
+MovieTheatreCore builds **one rolling resource pack** for **all media**.
 
-**“URL must point to a direct MP4/WEBM file.”**
-- Use a direct download link or MediaFire direct link (not a share page).
+It automatically rebuilds when:
+- Media is added
+- Media is removed
+- Media is updated
 
-**“YouTube blocked this request without cookies.”**
-- Add `youtube-cookies.txt` to the plugin folder and retry.
+Rules:
+- The pack is applied **only** when a player is within range of an active screen **and** a video is playing.
+- If the pack fails to download, playback is stopped and admins are notified.
+- Keep `resource_pack.server.enabled: true` (default) so the server can host the pack.
 
-**“Cookies are expired.”**
-- Export fresh cookies and replace the file.
+Pack URL format (required):
+```
+{pack.public-base-url}/pack.zip
+```
 
-**“Pack URL not configured.”**
-- Set `resource_pack.url` or enable the built‑in server (`resource_pack.server.enabled: true`).
+Debug command:
+```
+/mtc debug pack
+```
 
-**“Media is loading. Try again shortly.”**
-- The server is still processing frames/audio. Wait a moment and retry.
+---
 
-## Files created by MovieTheatreCore
-All files are under `plugins/MovieTheatreCore/`:
+## 9) Admin GUI
 
-- `configuration/configuration.yml` — Main settings.
-- `translations/` — Language files.
-- `videos/` — Video metadata and frames.
-- `screens/` — Screen definitions.
-- `cache/videos/` — Media download cache.
-- `resourcepacks/` — Generated audio packs.
-- `audio/` — Audio chunks.
-- `theatre/` — Theatre rooms & schedules.
-- `tmp/` — Temporary files.
+Run:
+```
+/mtc admin
+```
+
+You receive a **bound admin tool** (bone):
+- Cannot be dropped
+- Cannot be moved
+- Right-click opens the admin GUI
+
+---
+
+## 10) YouTube cookies (reliable workflow)
+
+If YouTube blocks playback:
+
+1. Export cookies from your browser.
+2. Save them to:
+   ```
+   plugins/MovieTheatreCore/youtube-cookies.txt
+   ```
+
+Notes:
+- Cookies expire regularly; re-export as needed.
+- If cookies are missing or expired, MovieTheatreCore will warn you.
+
+---
+
+## 11) Troubleshooting (copy/paste)
+
+**Check dependency status**
+```
+/mtc deps status
+```
+
+**Check resource pack status**
+```
+/mtc pack status
+```
+
+**Full pack diagnostics**
+```
+/mtc debug pack
+```
+
+**Test the pack URL from your server**
+```
+curl -I https://your-pack-domain.example/pack.zip
+```
+
+**Common problems**
+
+- **“Pack URL not configured.”**
+  - Set `pack.public-base-url` to a public HTTPS domain.
+
+- **“Pack URL returned HTML.”**
+  - You used a share page. Use a direct HTTPS URL to `/pack.zip`.
+
+- **“Pack failed (DECLINED/FAILED_DOWNLOAD).”**
+  - The player declined or could not download the pack. Fix the HTTPS URL and try again.
+
+- **“Media is loading. Try again shortly.”**
+  - The video is still processing; wait and retry.
+
+---
+
+## 12) Files created by MovieTheatreCore
+
+All files are stored under `plugins/MovieTheatreCore/`:
+
+- `configuration/configuration.yml` — Main settings
+- `translations/` — Language files
+- `videos/` — Video metadata and frames
+- `screens/` — Screen definitions
+- `cache/videos/` — Media download cache
+- `resourcepacks/pack.zip` — Generated resource pack
+- `audio/` — Audio chunks
+- `theatre/` — Theatre rooms & schedules
+- `tmp/` — Temporary files
+
+---
+
+> On startup, MovieTheatreCore automatically copies this guide to `plugins/MovieTheatreCore/USER_GUIDE.md` if it is missing.

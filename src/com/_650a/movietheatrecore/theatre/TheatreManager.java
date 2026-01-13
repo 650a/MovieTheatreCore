@@ -255,7 +255,6 @@ public class TheatreManager {
         int scheduleCount = schedules.values().stream().mapToInt(List::size).sum();
         lines.add(ChatColor.GRAY + "Schedules: " + scheduleCount);
         lines.add(ChatColor.GRAY + "Theatre enabled: " + yesNo(configuration.theatre_enabled()));
-        lines.add(ChatColor.GRAY + "Audio enabled: " + yesNo(configuration.audio_enabled()));
         lines.add(ChatColor.GRAY + "FFmpeg available: " + yesNo(plugin.getFfmpeg().isAvailable()));
         lines.add(ChatColor.GRAY + "FFprobe available: " + yesNo(plugin.getFfprobe().isAvailable()));
         if (!configuration.theatre_enabled()) {

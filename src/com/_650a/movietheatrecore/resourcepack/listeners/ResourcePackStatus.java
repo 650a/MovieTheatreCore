@@ -31,6 +31,10 @@ public class ResourcePackStatus implements Listener {
 	
     @EventHandler
     public void onResourcepackStatusEvent(PlayerResourcePackStatusEvent event) {
-    	if(event.getStatus().equals(Status.SUCCESSFULLY_LOADED)) plugin.getPlayersScreens().put(event.getPlayer().getUniqueId(), null);
+    	Status status = event.getStatus();
+    	if(status.equals(Status.SUCCESSFULLY_LOADED)) {
+    		plugin.getPlayersScreens().put(event.getPlayer().getUniqueId(), null);
+    	}
+		plugin.getPlaybackManager().handleResourcePackStatus(event.getPlayer(), status);
     }
 }

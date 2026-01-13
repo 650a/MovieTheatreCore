@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.imageio.ImageIO;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -56,6 +57,8 @@ public class PlaybackSession {
 
     private final Set<UUID> viewers = new HashSet<>();
     private final Set<UUID> audioListeners = new HashSet<>();
+    private final Set<UUID> packPending = new HashSet<>();
+    private final Set<UUID> packApplied = new HashSet<>();
 
     private BukkitTask tickTask;
     private java.util.function.Predicate<Player> audioAudienceFilter;
@@ -67,6 +70,7 @@ public class PlaybackSession {
     private long frameDurationNanos;
     private PlaybackState state = PlaybackState.IDLE;
     private AudioPlayback audioPlayback;
+    private boolean packRequired = false;
 
     private Server resourcePackServer;
     private AudioTrack audioTrack;
@@ -108,13 +112,11 @@ public class PlaybackSession {
         active = true;
         setupResourcePack();
         lastFrameNanos = System.nanoTime();
-        state = PlaybackState.PLAYING;
 
         tickTask = scheduler.runSyncRepeating(this::tick, 0L, 1L);
-
-        if (audioTrack != null) {
-            audioPlayback = new AudioPlayback(scheduler, audioTrack, this::getAudioListenerSnapshot, this::getAudioSpeakerLocation, () -> active);
-            audioPlayback.start();
+        if (!packRequired) {
+            state = PlaybackState.PLAYING;
+            startAudioPlaybackIfReady();
         }
     }
 
@@ -162,6 +164,7 @@ public class PlaybackSession {
                     for (int i = 0; i < video.getAudioChannels(); i++) {
                         plugin.getAudioUtil().stopAudio(player, "movietheatrecore." + i);
                     }
+                    clearResourcePack(player);
                 }
             }
         }
@@ -182,6 +185,8 @@ public class PlaybackSession {
 
         viewers.clear();
         audioListeners.clear();
+        packPending.clear();
+        packApplied.clear();
         state = PlaybackState.IDLE;
         stopping.set(false);
     }
@@ -195,6 +200,15 @@ public class PlaybackSession {
         int audioInterval = Math.max(1, configuration.theatre_audio_update_interval());
         if (audioUpdateCounter++ % audioInterval == 0) {
             updateAudioListeners();
+        }
+
+        if (packRequired && !audioListeners.isEmpty() && !packPending.isEmpty()) {
+            state = PlaybackState.PREPARING;
+            return;
+        }
+        if (packRequired && state == PlaybackState.PREPARING) {
+            state = PlaybackState.PLAYING;
+            startAudioPlaybackIfReady();
         }
 
         long now = System.nanoTime();
@@ -320,11 +334,17 @@ public class PlaybackSession {
     private void updateAudioListeners() {
         Location speaker = getAudioSpeakerLocation();
         if (speaker == null || speaker.getWorld() == null) {
+            for (UUID uuid : new HashSet<>(audioListeners)) {
+                handleAudioListenerLeave(uuid);
+            }
             audioListeners.clear();
+            packPending.clear();
+            packApplied.clear();
             return;
         }
 
         int radius = screen.getAudioRadius();
+        Set<UUID> previous = new HashSet<>(audioListeners);
         Set<UUID> seen = new HashSet<>();
 
         for (Entity entity : getNearbyEntities(speaker, radius)) {
@@ -340,6 +360,11 @@ public class PlaybackSession {
         }
 
         audioListeners.retainAll(seen);
+        for (UUID uuid : previous) {
+            if (!audioListeners.contains(uuid)) {
+                handleAudioListenerLeave(uuid);
+            }
+        }
     }
 
     private boolean isAllowedAudioListener(Player player) {
@@ -354,11 +379,76 @@ public class PlaybackSession {
         if (options.allowAudio()) {
             if (audioTrack != null) {
                 sendResourcePack(player, audioTrack.getPackUrl(), audioTrack.getPackSha1());
+                markPackPending(player);
             } else if (video.isAudioEnabled() && resourcePackServer != null) {
                 sendResourcePack(player, resourcePackServer.url().replaceAll("%name%", video.getName() + ".zip"), new byte[0]);
+                markPackPending(player);
                 for (int i = 0; i < video.getAudioChannels(); i++) {
                     player.playSound(player.getLocation(), "movietheatrecore." + i, 10, 1);
                 }
+            }
+        }
+    }
+
+    public void handleResourcePackStatus(Player player, org.bukkit.event.player.PlayerResourcePackStatusEvent.Status status) {
+        if (!packRequired || player == null) {
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        if (!audioListeners.contains(uuid)) {
+            return;
+        }
+        if (status == org.bukkit.event.player.PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED) {
+            packApplied.add(uuid);
+            packPending.remove(uuid);
+            startAudioPlaybackIfReady();
+            return;
+        }
+        if (status == org.bukkit.event.player.PlayerResourcePackStatusEvent.Status.DECLINED
+                || status == org.bukkit.event.player.PlayerResourcePackStatusEvent.Status.FAILED_DOWNLOAD) {
+            notifyPackFailure(player, status.name());
+            onError();
+        }
+    }
+
+    private void handleAudioListenerLeave(UUID uuid) {
+        packPending.remove(uuid);
+        packApplied.remove(uuid);
+        Player player = Bukkit.getPlayer(uuid);
+        if (player != null && options.allowAudio()) {
+            clearResourcePack(player);
+        }
+    }
+
+    private void markPackPending(Player player) {
+        if (!packRequired || player == null) {
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        if (!packApplied.contains(uuid)) {
+            packPending.add(uuid);
+        }
+    }
+
+    private void startAudioPlaybackIfReady() {
+        if (audioTrack == null || audioPlayback != null) {
+            return;
+        }
+        if (packRequired && !audioListeners.isEmpty() && !packPending.isEmpty()) {
+            return;
+        }
+        lastFrameNanos = System.nanoTime();
+        audioPlayback = new AudioPlayback(scheduler, audioTrack, this::getAudioListenerSnapshot, this::getAudioSpeakerLocation, () -> active);
+        audioPlayback.start();
+    }
+
+    private void notifyPackFailure(Player player, String status) {
+        String packUrl = audioTrack == null ? "unknown" : audioTrack.getPackUrl();
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (online.hasPermission("movietheatrecore.admin")) {
+                online.sendMessage(ChatColor.RED + "MovieTheatreCore pack failed (" + status + ") for " + player.getName() + ". Playback stopped.");
+                online.sendMessage(ChatColor.YELLOW + "Check pack URL: " + packUrl);
+                online.sendMessage(ChatColor.YELLOW + "Run /mtc debug pack for diagnostics.");
             }
         }
     }
@@ -375,6 +465,7 @@ public class PlaybackSession {
         }
         if (options.audioTrack() != null) {
             audioTrack = options.audioTrack();
+            packRequired = true;
             return;
         }
         if (!video.isAudioEnabled()) {
@@ -388,6 +479,7 @@ public class PlaybackSession {
         }
         resourcePackServer = new Server(pack);
         resourcePackServer.start();
+        packRequired = true;
     }
 
     private void sendResourcePack(Player player, String url, byte[] sha1) {
@@ -402,6 +494,21 @@ public class PlaybackSession {
             }
         } catch (NoSuchMethodError error) {
             player.setResourcePack(url);
+        }
+    }
+
+    private void clearResourcePack(Player player) {
+        if (player == null) {
+            return;
+        }
+        try {
+            player.setResourcePack("", new byte[0], false);
+        } catch (NoSuchMethodError error) {
+            try {
+                player.setResourcePack("");
+            } catch (Exception ignored) {
+                // Ignore removal failures on legacy versions.
+            }
         }
     }
 

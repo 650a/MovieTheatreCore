@@ -4,7 +4,7 @@ MovieTheatreCore is a commercial, closed-source multi-room cinema plugin for Min
 
 ## User Guide
 
-See the full [MovieTheatreCore User Guide](USER_GUIDE.md) for installation, setup, and command examples.
+See the full [MovieTheatreCore User Guide](docs/USER_GUIDE.md) for installation, setup, and command examples.
 
 ## Commercial License & Ownership
 
@@ -26,7 +26,7 @@ MovieTheatreCore is distributed only through official marketplace listings. Inst
 - Multi-room theatres with scheduled shows and audience zones.
 - Screen, media, and playback management from a single command surface.
 - Automatic, offline-friendly dependency installer for ffmpeg/ffprobe/yt-dlp/deno.
-- Audio resource pack generation with optional embedded pack server.
+- Automatic resource pack generation with a single rolling pack for all media.
 - Compatible with Minecraft 1.8.8 (Java 17) through the latest releases.
 
 ## Permissions
@@ -60,6 +60,15 @@ MovieTheatreCore enforces permissions on every command and GUI action:
 4. **Verify dependencies**
    - Run `/mtc deps status` to confirm ffmpeg/ffprobe/yt-dlp/deno.
 
+5. **Configure the public pack URL (required)**
+   - Create a pack subdomain (e.g., `pack.yourdomain.example`) with HTTPS.
+   - Set it in `configuration.yml`:
+     ```yaml
+     pack:
+       public-base-url: "https://pack.yourdomain.example"
+     ```
+   - The pack will be served at `https://pack.yourdomain.example/pack.zip`.
+
 ### VPS / Dedicated server
 
 1. **Install the plugin** into `plugins/` and start the server.
@@ -76,12 +85,22 @@ plugins/MovieTheatreCore/youtube-cookies.txt
 
 MovieTheatreCore will warn you if the cookies are expired and continue to run yt-dlp in tiered mode.
 
-### Audio resource packs (fully automatic)
+### Resource packs (fully automatic)
 
-When `audio.enabled: true`, MovieTheatreCore automatically extracts audio for new media and builds an on-demand resource pack. You can:
+MovieTheatreCore automatically extracts audio for new media and builds a single rolling resource pack. Players download it from:
 
-- Provide a static pack URL (set `resource_pack.url`), **or**
-- Enable the built-in pack server (`resource_pack.server.enabled: true`).
+```
+{pack.public-base-url}/pack.zip
+```
+
+Set the base URL in `configuration.yml`:
+
+```yaml
+pack:
+  public-base-url: "https://pack.yourdomain.example"
+```
+
+The built-in pack server is still used internally, but the **public URL must be HTTPS** and reachable by players.
 
 ## Auto-installed Dependencies
 
@@ -117,6 +136,15 @@ dependencies:
   install:
     exec-directory: "/home/container/MovieTheatreCore/runtime/bin"
 ```
+
+### Resource pack not downloading
+
+- Confirm `pack.public-base-url` is set to a **public HTTPS** URL.
+- Run `/mtc debug pack` to see pack size, SHA1, and curl test output.
+- Verify the pack URL returns a ZIP:
+  ```
+  curl -I https://your-pack-domain.example/pack.zip
+  ```
 
 ### Updater 404 / missing release asset
 

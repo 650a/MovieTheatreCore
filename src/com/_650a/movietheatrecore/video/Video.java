@@ -1095,7 +1095,11 @@ public class Video {
 	*/
 	
 	public boolean isAudioEnabled() {
-		return getConfigFile().getBoolean("video.enable-audio");
+		int channels = getAudioChannels();
+		if (channels > 0) {
+			return true;
+		}
+		return hasAudio();
 	}
 		
 	/**

@@ -149,7 +149,12 @@ public class ItemStacks {
 		ItemMeta meta = tool.getItemMeta();
 		meta.setDisplayName(configuration.item_admin_tool_name());
 		meta.setLore(Arrays.asList(configuration.item_admin_tool_lore()));
-		meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+		meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES,
+				ItemFlag.HIDE_ENCHANTS,
+				ItemFlag.HIDE_DESTROYS,
+				ItemFlag.HIDE_PLACED_ON,
+				ItemFlag.HIDE_POTION_EFFECTS,
+				ItemFlag.HIDE_UNBREAKABLE);
 		tool.setItemMeta(meta);
 		return tool;
 	}
