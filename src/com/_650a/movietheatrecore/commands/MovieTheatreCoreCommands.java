@@ -154,11 +154,49 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                             sender.sendMessage(configuration.insufficient_permissions());
                             return true;
                         }
-                        if (filteredArgs.size() < 4) {
-                            sender.sendMessage(ChatColor.RED + "/mtc media add <name> <url>");
+                        List<String> addArgs = new ArrayList<>(filteredArgs.subList(2, filteredArgs.size()));
+                        String customId = null;
+                        for (int i = 0; i < addArgs.size(); i++) {
+                            String token = addArgs.get(i);
+                            if (token.equalsIgnoreCase("--id")) {
+                                if (i + 1 >= addArgs.size()) {
+                                    sender.sendMessage(ChatColor.RED + "Missing value for --id.");
+                                    sendMediaAddHelp(sender);
+                                    return true;
+                                }
+                                customId = addArgs.get(i + 1);
+                                addArgs.remove(i + 1);
+                                addArgs.remove(i);
+                                i--;
+                                continue;
+                            }
+                            if (token.toLowerCase(Locale.ROOT).startsWith("--id=")) {
+                                customId = token.substring("--id=".length());
+                                if (customId.isBlank()) {
+                                    sender.sendMessage(ChatColor.RED + "Media ID cannot be empty.");
+                                    sendMediaAddHelp(sender);
+                                    return true;
+                                }
+                                addArgs.remove(i);
+                                i--;
+                            }
+                        }
+                        if (addArgs.size() < 2 || addArgs.size() > 3) {
+                            sendMediaAddHelp(sender);
                             return true;
                         }
-                        plugin.getMediaManager().addMedia(sender, filteredArgs.get(2), filteredArgs.get(3));
+                        String name = addArgs.get(0);
+                        String url = resolveMediaAddUrl(sender, addArgs);
+                        if (url == null) {
+                            sendMediaAddHelp(sender);
+                            return true;
+                        }
+                        if (customId != null && customId.isBlank()) {
+                            sender.sendMessage(ChatColor.RED + "Media ID cannot be empty.");
+                            sendMediaAddHelp(sender);
+                            return true;
+                        }
+                        plugin.getMediaManager().addMedia(sender, name, url, customId);
                         return true;
                     }
                     case "remove" -> {
@@ -621,6 +659,9 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
             } else if (args.length == 2 && args[0].equalsIgnoreCase("media")) {
                 List<String> candidates = List.of("add", "remove", "list");
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
+            } else if (args.length == 4 && args[0].equalsIgnoreCase("media") && args[1].equalsIgnoreCase("add")) {
+                List<String> candidates = List.of("yt", "youtube");
+                StringUtil.copyPartialMatches(args[3], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("pack")) {
                 List<String> candidates = List.of("status", "rebuild", "url");
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
@@ -698,7 +739,8 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mtc screen create <name> <w> <h>");
         sender.sendMessage(ChatColor.YELLOW + "/mtc screen delete <name>");
         sender.sendMessage(ChatColor.YELLOW + "/mtc screen list");
-        sender.sendMessage(ChatColor.YELLOW + "/mtc media add <name> <url>");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc media add <name> <url> [--id <id>]");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc media add <name> yt <videoId> [--id <id>]");
         sender.sendMessage(ChatColor.YELLOW + "/mtc media remove <name>");
         sender.sendMessage(ChatColor.YELLOW + "/mtc media list");
         sender.sendMessage(ChatColor.YELLOW + "/mtc play <screen> <source>");
@@ -735,9 +777,16 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
 
     private void sendMediaHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "Media commands:");
-        sender.sendMessage(ChatColor.YELLOW + "/mtc media add <name> <url>");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc media add <name> <url> [--id <id>]");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc media add <name> yt <videoId> [--id <id>]");
         sender.sendMessage(ChatColor.YELLOW + "/mtc media remove <name>");
         sender.sendMessage(ChatColor.YELLOW + "/mtc media list");
+    }
+
+    private void sendMediaAddHelp(CommandSender sender) {
+        sender.sendMessage(ChatColor.RED + "Usage:");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc media add <name> <url> [--id <id>]");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc media add <name> yt <videoId> [--id <id>]");
     }
 
     private void sendTheatreHelp(CommandSender sender) {
@@ -938,5 +987,24 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private String resolveMediaAddUrl(CommandSender sender, List<String> args) {
+        if (args.size() == 2) {
+            return args.get(1);
+        }
+        if (args.size() == 3) {
+            String source = args.get(1).toLowerCase(Locale.ROOT);
+            String value = args.get(2);
+            if (source.equals("yt") || source.equals("youtube")) {
+                if (value == null || value.isBlank()) {
+                    sender.sendMessage(ChatColor.RED + "Missing YouTube video ID.");
+                    return null;
+                }
+                return "https://www.youtube.com/watch?v=" + value;
+            }
+            sender.sendMessage(ChatColor.RED + "Unknown media source: " + args.get(1) + ". Use a direct URL or 'yt <videoId>'.");
+        }
+        return null;
     }
 }

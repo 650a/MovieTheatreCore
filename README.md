@@ -2,6 +2,10 @@
 
 MovieTheatreCore is a commercial, closed-source multi-room cinema plugin for Minecraft servers. It lets you build theatres with multiple screens, schedule shows, and stream media across your network with reliable, container-friendly dependency management.
 
+## User Guide
+
+See the full [MovieTheatreCore User Guide](docs/USER_GUIDE.md) for installation, setup, and command examples.
+
 ## Commercial License & Ownership
 
 MovieTheatreCore is proprietary software owned by 650a. Usage is licensed per server/network and is subject to the terms in [`LICENSE`](LICENSE). License violations void permission to use the software. No redistribution, resale, modification, or public forks are permitted.
