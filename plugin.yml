@@ -1,48 +1,116 @@
-main: fr.xxathyx.mediaplayer.Main
-name: MediaPlayer
-version: 1.0.3
+main: com._650a.movietheatrecore.Main
+name: MovieTheatreCore
+version: 1.0.4
 author: 650a
-description: Allows you to play and use various medias on Minecraft.
-website: https://github.com/650a/MediaPlayer/releases/latest/download/MediaPlayer.jar
+description: Multi-room cinema media playback for Minecraft servers.
+website: https://github.com/650a/MediaPlayerPro/releases/latest/download/MovieTheatreCore.jar
 api-version: 1.13
 
 commands:
-  mediaplayer:
-    description: "MediaPlayer root command."
-    aliases: [mp]
-    permission: mediaplayer.command
+  movietheatrecore:
+    description: "MovieTheatreCore root command."
+    aliases: [mtc, theatre, mediaplayer, mp]
+    permission: movietheatrecore.command
 permissions:
-  mediaplayer.permission.admin:
+  movietheatrecore.permission.admin:
     description: Provides access to various in-game admin tools.
-  mediaplayer.command:
-    description: Access to /mediaplayer.
-  mediaplayer.screen.manage:
+  movietheatrecore.command:
+    description: Access to /movietheatrecore.
+  movietheatrecore.screen.manage:
     description: Create/delete screens and set scaling.
-  mediaplayer.playback:
+  movietheatrecore.playback:
     description: Control playback on screens.
-  mediaplayer.admin:
-    description: Reload MediaPlayer.
-  mediaplayer.media.manage:
+  movietheatrecore.admin:
+    description: Reload MovieTheatreCore.
+  movietheatrecore.media.manage:
     description: Manage cached media entries.
-  mediaplayer.media.admin:
+  movietheatrecore.media.admin:
     description: Add/remove URL-based media and play direct URLs.
-  mediaplayer.pack.manage:
+  movietheatrecore.pack.manage:
     description: Manage internal resource pack hosting and rebuilds.
-  mediaplayer.deps.manage:
-    description: Manage MediaPlayer dependency status and reinstalls.
-  mediaplayer.theatre.room.create:
+  movietheatrecore.deps.manage:
+    description: Manage MovieTheatreCore dependency status and reinstalls.
+  movietheatrecore.theatre.room.create:
     description: Create theatre rooms.
-  mediaplayer.theatre.room.delete:
+  movietheatrecore.theatre.room.delete:
     description: Delete theatre rooms.
-  mediaplayer.theatre.schedule.add:
+  movietheatrecore.theatre.schedule.add:
     description: Add theatre schedule entries.
-  mediaplayer.theatre.schedule.remove:
+  movietheatrecore.theatre.schedule.remove:
     description: Remove theatre schedule entries.
-  mediaplayer.theatre.schedule.list:
+  movietheatrecore.theatre.schedule.list:
     description: List theatre schedule entries.
-  mediaplayer.theatre.play:
+  movietheatrecore.theatre.play:
     description: Start a theatre show in a room.
-  mediaplayer.theatre.stop:
+  movietheatrecore.theatre.stop:
     description: Stop a theatre show in a room.
-  mediaplayer.theatre.doctor:
+  movietheatrecore.theatre.doctor:
     description: Run theatre self-check diagnostics.
+  mediaplayer.permission.admin:
+    description: Legacy alias for movietheatrecore.permission.admin.
+    children:
+      movietheatrecore.permission.admin: true
+  mediaplayer.command:
+    description: Legacy alias for movietheatrecore.command.
+    children:
+      movietheatrecore.command: true
+  mediaplayer.screen.manage:
+    description: Legacy alias for movietheatrecore.screen.manage.
+    children:
+      movietheatrecore.screen.manage: true
+  mediaplayer.playback:
+    description: Legacy alias for movietheatrecore.playback.
+    children:
+      movietheatrecore.playback: true
+  mediaplayer.admin:
+    description: Legacy alias for movietheatrecore.admin.
+    children:
+      movietheatrecore.admin: true
+  mediaplayer.media.manage:
+    description: Legacy alias for movietheatrecore.media.manage.
+    children:
+      movietheatrecore.media.manage: true
+  mediaplayer.media.admin:
+    description: Legacy alias for movietheatrecore.media.admin.
+    children:
+      movietheatrecore.media.admin: true
+  mediaplayer.pack.manage:
+    description: Legacy alias for movietheatrecore.pack.manage.
+    children:
+      movietheatrecore.pack.manage: true
+  mediaplayer.deps.manage:
+    description: Legacy alias for movietheatrecore.deps.manage.
+    children:
+      movietheatrecore.deps.manage: true
+  mediaplayer.theatre.room.create:
+    description: Legacy alias for movietheatrecore.theatre.room.create.
+    children:
+      movietheatrecore.theatre.room.create: true
+  mediaplayer.theatre.room.delete:
+    description: Legacy alias for movietheatrecore.theatre.room.delete.
+    children:
+      movietheatrecore.theatre.room.delete: true
+  mediaplayer.theatre.schedule.add:
+    description: Legacy alias for movietheatrecore.theatre.schedule.add.
+    children:
+      movietheatrecore.theatre.schedule.add: true
+  mediaplayer.theatre.schedule.remove:
+    description: Legacy alias for movietheatrecore.theatre.schedule.remove.
+    children:
+      movietheatrecore.theatre.schedule.remove: true
+  mediaplayer.theatre.schedule.list:
+    description: Legacy alias for movietheatrecore.theatre.schedule.list.
+    children:
+      movietheatrecore.theatre.schedule.list: true
+  mediaplayer.theatre.play:
+    description: Legacy alias for movietheatrecore.theatre.play.
+    children:
+      movietheatrecore.theatre.play: true
+  mediaplayer.theatre.stop:
+    description: Legacy alias for movietheatrecore.theatre.stop.
+    children:
+      movietheatrecore.theatre.stop: true
+  mediaplayer.theatre.doctor:
+    description: Legacy alias for movietheatrecore.theatre.doctor.
+    children:
+      movietheatrecore.theatre.doctor: true

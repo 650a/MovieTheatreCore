@@ -6,24 +6,24 @@ This release introduces a simplified command set, a new playback pipeline with a
 
 ## Command changes
 
-* **New root command:** `/mediaplayer` (alias `/mp`).
+* **New root command:** `/movietheatrecore` (aliases `/mtc`, `/theatre`, legacy `/mediaplayer`, `/mp`).
 * Legacy commands such as `/video`, `/screen`, `/image`, and their GUI variants are no longer registered.
 
 Use:
 
-* `/mp screen create <name> <w> <h>`
-* `/mp screen delete <name>`
-* `/mp screen list`
-* `/mp media add <name> <url>`
-* `/mp media remove <name>`
-* `/mp media list`
-* `/mp play <screen> <source>`
-* `/mp play <screen> media <name> [--noaudio]`
-* `/mp play <screen> url <url> [--noaudio]`
-* `/mp stop <screen>`
-* `/mp pause <screen>` / `/mp resume <screen>`
-* `/mp scale <screen> <fit|fill|stretch>`
-* `/mp reload`
+* `/mtc screen create <name> <w> <h>`
+* `/mtc screen delete <name>`
+* `/mtc screen list`
+* `/mtc media add <name> <url>`
+* `/mtc media remove <name>`
+* `/mtc media list`
+* `/mtc play <screen> <source>`
+* `/mtc play <screen> media <name> [--noaudio]`
+* `/mtc play <screen> url <url> [--noaudio]`
+* `/mtc stop <screen>`
+* `/mtc pause <screen>` / `/mtc resume <screen>`
+* `/mtc scale <screen> <fit|fill|stretch>`
+* `/mtc reload`
 
 ## Screen scaling
 
@@ -37,27 +37,27 @@ Use:
 
 ## GUI changes
 
-* The Screen Manager GUI is available via `/mp screen list`.
+* The Screen Manager GUI is available via `/mtc screen list`.
 * The Now Playing GUI is accessible by clicking a screen entry.
 * GUI actions now enforce the same permissions as the commands.
 
 ## What you need to do
 
 1. Update permissions to include the new nodes:
-   * `mediaplayer.command`
-   * `mediaplayer.screen.manage`
-   * `mediaplayer.playback`
-   * `mediaplayer.admin`
-   * `mediaplayer.media.manage`
-   * `mediaplayer.media.admin`
-2. (Optional) Set scaling mode per screen with `/mp scale <screen> <fit|fill|stretch>`.
+   * `movietheatrecore.command`
+   * `movietheatrecore.screen.manage`
+   * `movietheatrecore.playback`
+   * `movietheatrecore.admin`
+   * `movietheatrecore.media.manage`
+   * `movietheatrecore.media.admin`
+2. (Optional) Set scaling mode per screen with `/mtc scale <screen> <fit|fill|stretch>`.
 3. Configure `media.allowed-domains` (or `sources.allowed-domains`) before using URL-based media.
 4. If you want vanilla audio, enable `audio.enabled` and provide `resource_pack.url`.
 5. No configuration migration is required beyond ensuring `screen.scale-mode` exists (auto-added on load).
 
 ## Configuration format update
 
-MediaPlayer now uses a simplified configuration structure with grouped sections:
+MovieTheatreCore now uses a simplified configuration structure with grouped sections:
 
 * `general` for plugin behavior and limits.
 * `video` for screen rendering options.
@@ -67,14 +67,14 @@ MediaPlayer now uses a simplified configuration structure with grouped sections:
 * `advanced` for legacy/rare toggles.
 
 Legacy keys like `plugin.langage`, `plugin.maximum-distance-to-receive`, and `media.allowed-domains` remain supported.
-On load, MediaPlayer maps existing legacy keys into the new structure and preserves your values.
+On load, MovieTheatreCore maps existing legacy keys into the new structure and preserves your values.
 
 ### Dependency + allowlist updates
 
 * `sources.allowlist-mode` is new and defaults to `OFF` (no blocking). Existing configs with `sources.allowed-domains`
   are migrated to `sources.allowlist-mode: STRICT` so behavior remains unchanged.
-* `sources.deno-path` is new (optional). If set, MediaPlayer uses it for yt-dlp JS challenges.
-* If `sources.youtube-resolver-path` is empty, MediaPlayer now downloads and stages `yt-dlp` automatically.
+* `sources.deno-path` is new (optional). If set, MovieTheatreCore uses it for yt-dlp JS challenges.
+* If `sources.youtube-resolver-path` is empty, MovieTheatreCore now downloads and stages `yt-dlp` automatically.
 
 ### Required changes
 
@@ -83,7 +83,7 @@ On load, MediaPlayer maps existing legacy keys into the new structure and preser
 
 ### Required changes
 
-* If you use audio, set `resource_pack.url`. When it is empty, MediaPlayer logs
+* If you use audio, set `resource_pack.url`. When it is empty, MovieTheatreCore logs
   `audio enabled but no pack host-url configured` and disables audio gracefully.
 * The default language is now English (`general.language: EN`). If the configured translation file
-  is missing, MediaPlayer falls back to English and logs a warning.
+  is missing, MovieTheatreCore falls back to English and logs a warning.

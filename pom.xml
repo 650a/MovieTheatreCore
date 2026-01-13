@@ -3,10 +3,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>b0x.us</groupId>
-  <artifactId>MediaPlayer</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
-  <name>MediaPlayer</name>
+  <groupId>com._650a</groupId>
+  <artifactId>MovieTheatreCore</artifactId>
+  <version>1.0.4-SNAPSHOT</version>
+  <name>MovieTheatreCore</name>
   <packaging>jar</packaging>
 
   <properties>
@@ -115,7 +115,7 @@
         </includes>
       </resource>
       <resource>
-        <directory>src/fr/xxathyx/mediaplayer/translations</directory>
+        <directory>src/com/_650a/movietheatrecore/translations</directory>
         <includes>
           <include>*.yml</include>
         </includes>
@@ -176,27 +176,27 @@
               <relocations>
                 <relocation>
                   <pattern>org.apache.commons.io</pattern>
-                  <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.apache.commons.io</shadedPattern>
+                  <shadedPattern>com._650a.movietheatrecore.shaded.org.apache.commons.io</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.apache.commons.lang3</pattern>
-                  <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.apache.commons.lang3</shadedPattern>
+                  <shadedPattern>com._650a.movietheatrecore.shaded.org.apache.commons.lang3</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.apache.commons.lang</pattern>
-                  <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.apache.commons.lang</shadedPattern>
+                  <shadedPattern>com._650a.movietheatrecore.shaded.org.apache.commons.lang</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.apache.commons.compress</pattern>
-                  <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.apache.commons.compress</shadedPattern>
+                  <shadedPattern>com._650a.movietheatrecore.shaded.org.apache.commons.compress</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.tukaani</pattern>
-                  <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.tukaani</shadedPattern>
+                  <shadedPattern>com._650a.movietheatrecore.shaded.org.tukaani</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.json.simple</pattern>
-                  <shadedPattern>fr.xxathyx.mediaplayer.shaded.org.json.simple</shadedPattern>
+                  <shadedPattern>com._650a.movietheatrecore.shaded.org.json.simple</shadedPattern>
                 </relocation>
               </relocations>
             </configuration>
@@ -220,7 +220,7 @@
                 <mkdir dir="${project.build.directory}/shade-verify" />
                 <unzip src="${project.build.directory}/${project.build.finalName}.jar"
                        dest="${project.build.directory}/shade-verify" />
-                <available file="${project.build.directory}/shade-verify/fr/xxathyx/mediaplayer/shaded/org/apache/commons/compress/compressors/xz/XZCompressorInputStream.class"
+                <available file="${project.build.directory}/shade-verify/com/_650a/movietheatrecore/shaded/org/apache/commons/compress/compressors/xz/XZCompressorInputStream.class"
                            property="xz.present" />
                 <fail message="Missing shaded XZCompressorInputStream.class in ${project.build.finalName}.jar"
                       unless="xz.present" />
