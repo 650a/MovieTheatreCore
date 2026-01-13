@@ -109,14 +109,17 @@ public class EmbeddedPackServer {
     }
 
     private String resolvePublicBaseUrl() {
-        String override = configuration.pack_public_base_url();
-        if (override != null && !override.isBlank()) {
-            return trimTrailingSlash(override.trim());
+        String override = normalizePublicBaseUrl(configuration.resourcepack_server_public_url());
+        if (override != null) {
+            return override;
         }
-
-        override = configuration.resourcepack_server_public_url();
-        if (override != null && !override.isBlank()) {
-            return trimTrailingSlash(override.trim());
+        override = normalizePublicBaseUrl(configuration.pack_public_base_url());
+        if (override != null) {
+            return override;
+        }
+        override = normalizePublicBaseUrl(configuration.resourcepack_host_url());
+        if (override != null) {
+            return override;
         }
         return null;
     }
@@ -126,6 +129,29 @@ public class EmbeddedPackServer {
             return value.substring(0, value.length() - 1);
         }
         return value;
+    }
+
+    private String normalizePublicBaseUrl(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = trimTrailingSlash(value.trim());
+        if (trimmed.endsWith("/pack.zip")) {
+            trimmed = trimTrailingSlash(trimmed.substring(0, trimmed.length() - "/pack.zip".length()));
+        }
+        if (isBlockedHost(trimmed)) {
+            return null;
+        }
+        return trimmed;
+    }
+
+    private boolean isBlockedHost(String baseUrl) {
+        try {
+            java.net.URL url = new java.net.URL(baseUrl);
+            return "0.0.0.0".equals(url.getHost());
+        } catch (Exception ignored) {
+            return baseUrl.contains("0.0.0.0");
+        }
     }
 
     private String normalizeHost(String host) {

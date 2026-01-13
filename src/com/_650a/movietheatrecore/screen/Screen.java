@@ -377,7 +377,12 @@ public class Screen {
 	*/
 	
 	public UUID getUUID() {
-		return UUID.fromString(getConfigFile().getString("screen.uuid"));
+		if (uuid != null) {
+			return uuid;
+		}
+		String value = getConfigFile().getString("screen.uuid");
+		uuid = parseUuid(value);
+		return uuid;
 	}
 	
 	/**
@@ -1016,13 +1021,31 @@ public class Screen {
 	*/
 	
 	public void remove() {
-		ArrayList<ItemFrame> frames = getFrames();
-		ArrayList<Block> blocks = getBlocks();
-		for(int i = 0; i < blocks.size(); i++) {
-			if(i < frames.size() && frames.get(i) != null) {
-				frames.get(i).remove();
+		for (Part part : getParts()) {
+			Block block = part.getBlock();
+			if (block != null) {
+				block.setType(Material.AIR);
 			}
-			blocks.get(i).setType(Material.AIR);
+			Location location = part.getItemFrameLocation();
+			if (location != null && location.getWorld() != null) {
+				for (Entity entity : location.getWorld().getNearbyEntities(location, 0.5, 0.5, 0.5)) {
+					if (entity.getType() == EntityType.ITEM_FRAME || entity.getType() == EntityType.GLOW_ITEM_FRAME) {
+						entity.remove();
+					}
+				}
+			}
+		}
+		ArrayList<ItemFrame> frames = getFrames();
+		for (ItemFrame frame : frames) {
+			if (frame != null) {
+				frame.remove();
+			}
+		}
+		ArrayList<Block> blocks = getBlocks();
+		for (Block block : blocks) {
+			if (block != null) {
+				block.setType(Material.AIR);
+			}
 		}
 	}
 	
@@ -1034,11 +1057,29 @@ public class Screen {
 		
 		plugin.getRegisteredScreens().remove(this);
 		remove();
-				
+		File configFile = getFile();
+		if (configFile == null) {
+			return;
+		}
+		File parent = configFile.getParentFile();
+		if (parent == null || !parent.exists()) {
+			return;
+		}
 		try {
-			FileUtils.deleteDirectory(getFile().getParentFile());
-		}catch (IOException e) {
+			FileUtils.deleteDirectory(parent);
+		} catch (IOException e) {
 			e.printStackTrace();
+		}
+	}
+
+	private UUID parseUuid(String value) {
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		try {
+			return UUID.fromString(value);
+		} catch (IllegalArgumentException e) {
+			return null;
 		}
 	}
 	

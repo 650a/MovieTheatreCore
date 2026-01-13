@@ -114,7 +114,11 @@ public class Content {
 	*/
 	
 	public Screen getScreen() {
-		return new Screen(UUID.fromString(getConfigFile().getString("screen.uuid")));
+		UUID uuid = parseUuid(getConfigFile().getString("screen.uuid"));
+		if (uuid == null) {
+			return null;
+		}
+		return new Screen(uuid);
 	}
 	
 	/**
@@ -124,7 +128,7 @@ public class Content {
 	*/
 	
 	public UUID getUUID() {
-		return UUID.fromString(getConfigFile().getString("content.uuid"));
+		return parseUuid(getConfigFile().getString("content.uuid"));
 	}
 	
 	/**
@@ -206,10 +210,22 @@ public class Content {
 	    if(getType() == ContentType.IMAGE) name = ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + FilenameUtils.removeExtension(getSource().getName());
 	    
 	    icon_meta.setDisplayName(name);
-	    icon_meta.setLore(Arrays.asList(new String[] { ChatColor.LIGHT_PURPLE + "screen-uuid: " + getScreen().getUUID().toString(), "", ChatColor.LIGHT_PURPLE +
-	    		"content-uuid: " + getUUID().toString(), ChatColor.LIGHT_PURPLE + "content-type: " + getType().toString() }));
+	    icon_meta.setLore(Arrays.asList(new String[] {
+	    		ChatColor.GRAY + "Type: " + getType().toString().toLowerCase()
+	    }));
 	    icon.setItemMeta(icon_meta);
 		
 	    return icon;
+	}
+
+	private UUID parseUuid(String value) {
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		try {
+			return UUID.fromString(value);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
 }

@@ -87,6 +87,9 @@ public class TaskAsyncLoadVideo extends BukkitRunnable {
 	        
 	        String framesExtension = video.getFramesExtension();
 	        int framesCount = video.getFramesFolder().listFiles().length;
+	        if (configuration.debug_render()) {
+	        	plugin.getLogger().info("[MovieTheatreCore]: Preparing frames for video " + video.getName() + " (" + framesCount + "/" + video.getTotalFrames() + ").");
+	        }
 	                
 	        VideoData videoData = new VideoData(video); 
 	        
@@ -240,6 +243,10 @@ public class TaskAsyncLoadVideo extends BukkitRunnable {
 	    				e.printStackTrace();
 	    			}
 	            }
+	        }
+	        if (configuration.debug_render()) {
+	        	int extracted = video.getFramesFolder().listFiles().length;
+	        	plugin.getLogger().info("[MovieTheatreCore]: Extracted " + extracted + " frames for video " + video.getName() + ".");
 	        }
 	        
 	        new Notification(NotificationType.VIDEO_PROCESSING_AUDIO_FINISHED, true).send(new Group("movietheatrecore.permission.admin"), new String[] { video.getName() }, true);

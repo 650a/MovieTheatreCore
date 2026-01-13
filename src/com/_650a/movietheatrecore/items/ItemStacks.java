@@ -5,12 +5,15 @@ import java.util.Arrays;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapView;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import com._650a.movietheatrecore.Main;
 import com._650a.movietheatrecore.configuration.Configuration;
@@ -145,6 +148,10 @@ public class ItemStacks {
 	 */
 
 	public ItemStack adminTool() {
+		return adminTool(null);
+	}
+
+	public ItemStack adminTool(org.bukkit.entity.Player player) {
 		ItemStack tool = new ItemStack(Material.BONE, 1);
 		ItemMeta meta = tool.getItemMeta();
 		meta.setDisplayName(configuration.item_admin_tool_name());
@@ -155,6 +162,9 @@ public class ItemStacks {
 				ItemFlag.HIDE_PLACED_ON,
 				ItemFlag.HIDE_POTION_EFFECTS,
 				ItemFlag.HIDE_UNBREAKABLE);
+		if (player != null) {
+			meta.getPersistentDataContainer().set(adminToolOwnerKey(), PersistentDataType.STRING, player.getUniqueId().toString());
+		}
 		tool.setItemMeta(meta);
 		return tool;
 	}
@@ -164,7 +174,47 @@ public class ItemStacks {
 			return false;
 		}
 		ItemMeta meta = item.getItemMeta();
-		return meta.hasDisplayName() && meta.getDisplayName().equals(configuration.item_admin_tool_name());
+		return item.getType() == Material.BONE
+				&& meta.hasDisplayName()
+				&& meta.getDisplayName().equals(configuration.item_admin_tool_name());
+	}
+
+	public java.util.UUID getAdminToolOwner(ItemStack item) {
+		if (!isAdminTool(item)) {
+			return null;
+		}
+		ItemMeta meta = item.getItemMeta();
+		PersistentDataContainer container = meta.getPersistentDataContainer();
+		String value = container.get(adminToolOwnerKey(), PersistentDataType.STRING);
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		try {
+			return java.util.UUID.fromString(value);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	public boolean isAdminToolFor(ItemStack item, org.bukkit.entity.Player player) {
+		if (!isAdminTool(item) || player == null) {
+			return false;
+		}
+		java.util.UUID owner = getAdminToolOwner(item);
+		return owner == null || owner.equals(player.getUniqueId());
+	}
+
+	public void bindAdminTool(ItemStack item, org.bukkit.entity.Player player) {
+		if (!isAdminTool(item) || player == null) {
+			return;
+		}
+		ItemMeta meta = item.getItemMeta();
+		meta.getPersistentDataContainer().set(adminToolOwnerKey(), PersistentDataType.STRING, player.getUniqueId().toString());
+		item.setItemMeta(meta);
+	}
+
+	private NamespacedKey adminToolOwnerKey() {
+		return new NamespacedKey(plugin, "admin-tool-owner");
 	}
 	
 	/** 

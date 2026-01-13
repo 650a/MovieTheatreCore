@@ -16,6 +16,8 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com._650a.movietheatrecore.Main;
 import com._650a.movietheatrecore.configuration.Configuration;
+import com._650a.movietheatrecore.media.MediaEntry;
+import com._650a.movietheatrecore.media.MediaLibrary;
 import com._650a.movietheatrecore.playback.PlaybackManager;
 import com._650a.movietheatrecore.render.ScalingMode;
 import com._650a.movietheatrecore.screen.Screen;
@@ -40,6 +42,24 @@ public class GuiListener implements Listener {
         if (inventory.getHolder() instanceof ScreenManagerHolder) {
             event.setCancelled(true);
             handleScreenManagerClick(event);
+            return;
+        }
+
+        if (inventory.getHolder() instanceof ScreenListHolder) {
+            event.setCancelled(true);
+            handleScreenListClick(event);
+            return;
+        }
+
+        if (inventory.getHolder() instanceof ScreenDetailHolder) {
+            event.setCancelled(true);
+            handleScreenDetailClick(event);
+            return;
+        }
+
+        if (inventory.getHolder() instanceof MediaLibraryHolder) {
+            event.setCancelled(true);
+            handleMediaLibraryClick(event);
             return;
         }
 
@@ -153,10 +173,172 @@ public class GuiListener implements Listener {
         }
     }
 
+    private void handleScreenListClick(InventoryClickEvent event) {
+        ItemStack item = event.getCurrentItem();
+        if (item == null || !item.hasItemMeta()) {
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        NamespacedKey actionKey = new NamespacedKey(plugin, "action");
+        NamespacedKey screenKey = new NamespacedKey(plugin, "screen-id");
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        String action = container.get(actionKey, PersistentDataType.STRING);
+        String screenId = container.get(screenKey, PersistentDataType.STRING);
+
+        Player player = (Player) event.getWhoClicked();
+        if ("create-screen".equals(action)) {
+            if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage")) {
+                player.sendMessage(configuration.insufficient_permissions());
+                return;
+            }
+            AdminWizardListener.startScreenWizard(player);
+            return;
+        }
+        if (screenId == null) {
+            return;
+        }
+        Screen screen;
+        try {
+            screen = plugin.getScreenManager().getScreen(UUID.fromString(screenId));
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(ChatColor.RED + "Invalid screen reference.");
+            return;
+        }
+        if (screen == null) {
+            player.sendMessage(ChatColor.RED + "Screen no longer exists.");
+            return;
+        }
+        if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage")) {
+            player.sendMessage(configuration.insufficient_permissions());
+            return;
+        }
+        new ScreenDetailMenu(plugin, screen).open(player);
+    }
+
+    private void handleScreenDetailClick(InventoryClickEvent event) {
+        ItemStack item = event.getCurrentItem();
+        if (item == null || !item.hasItemMeta()) {
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        NamespacedKey actionKey = new NamespacedKey(plugin, "action");
+        NamespacedKey screenKey = new NamespacedKey(plugin, "screen-id");
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        String action = container.get(actionKey, PersistentDataType.STRING);
+        String screenId = container.get(screenKey, PersistentDataType.STRING);
+        if (action == null || screenId == null) {
+            return;
+        }
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        Screen screen;
+        try {
+            screen = plugin.getScreenManager().getScreen(UUID.fromString(screenId));
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(ChatColor.RED + "Invalid screen reference.");
+            return;
+        }
+        if (screen == null) {
+            player.sendMessage(ChatColor.RED + "Screen no longer exists.");
+            return;
+        }
+        switch (action) {
+            case "assign-media" -> {
+                if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage")) {
+                    player.sendMessage(configuration.insufficient_permissions());
+                    return;
+                }
+                new MediaLibraryMenu(plugin, screen).open(player);
+            }
+            case "delete-screen" -> {
+                if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage")) {
+                    player.sendMessage(configuration.insufficient_permissions());
+                    return;
+                }
+                plugin.getScreenManager().deleteScreen(screen);
+                player.closeInventory();
+                player.sendMessage(ChatColor.GREEN + "Screen deleted: " + screen.getName());
+            }
+            case "playback" -> {
+                if (!PermissionUtil.hasPermission(player, "movietheatrecore.playback")) {
+                    player.sendMessage(configuration.insufficient_permissions());
+                    return;
+                }
+                new NowPlayingMenu(plugin, screen).open(player);
+            }
+            case "back" -> new ScreenListMenu(plugin).open(player);
+            default -> {
+            }
+        }
+    }
+
+    private void handleMediaLibraryClick(InventoryClickEvent event) {
+        ItemStack item = event.getCurrentItem();
+        if (item == null || !item.hasItemMeta()) {
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        NamespacedKey actionKey = new NamespacedKey(plugin, "action");
+        NamespacedKey mediaKey = new NamespacedKey(plugin, "media-name");
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        String action = container.get(actionKey, PersistentDataType.STRING);
+        String mediaName = container.get(mediaKey, PersistentDataType.STRING);
+        Player player = (Player) event.getWhoClicked();
+
+        if ("add-media".equals(action)) {
+            if (!PermissionUtil.hasPermission(player, "movietheatrecore.media.admin")) {
+                player.sendMessage(configuration.insufficient_permissions());
+                return;
+            }
+            AdminWizardListener.startMediaWizard(player);
+            return;
+        }
+
+        MediaLibraryHolder holder = (MediaLibraryHolder) event.getInventory().getHolder();
+        if (mediaName == null) {
+            return;
+        }
+
+        MediaLibrary library = plugin.getMediaLibrary();
+        MediaEntry entry = library.getEntry(mediaName);
+        if (entry == null) {
+            player.sendMessage(ChatColor.RED + "Media not found: " + mediaName);
+            return;
+        }
+
+        if (holder != null && holder.getScreenId() != null) {
+            Screen screen = plugin.getScreenManager().getScreen(holder.getScreenId());
+            if (screen == null) {
+                player.sendMessage(ChatColor.RED + "Screen no longer exists.");
+                return;
+            }
+            if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage")) {
+                player.sendMessage(configuration.insufficient_permissions());
+                return;
+            }
+            try {
+                screen.setVideoName(entry.getName());
+                player.sendMessage(ChatColor.GREEN + "Assigned " + entry.getName() + " to " + screen.getName() + ".");
+                player.closeInventory();
+            } catch (Exception e) {
+                player.sendMessage(ChatColor.RED + "Failed to assign media: " + e.getMessage());
+            }
+            return;
+        }
+        player.sendMessage(ChatColor.GRAY + "Media: " + entry.getName() + " (" + entry.getUrl() + ")");
+    }
+
     private void handlePlay(Player player, PlaybackManager playbackManager, Screen screen) {
         String videoName = screen.getVideoName();
         if (videoName == null || videoName.equalsIgnoreCase("none")) {
             player.sendMessage(ChatColor.RED + "No video linked to this screen. Use /mtc play <screen> <source>.");
+            return;
+        }
+
+        MediaEntry mediaEntry = plugin.getMediaLibrary().getEntry(videoName);
+        if (mediaEntry != null) {
+            plugin.getMediaManager().playMedia(player, screen, mediaEntry.getName());
             return;
         }
 

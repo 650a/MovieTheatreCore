@@ -277,7 +277,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(ChatColor.RED + "Only players can receive the admin tool.");
                     return true;
                 }
-                ItemStack tool = new com._650a.movietheatrecore.items.ItemStacks().adminTool();
+                ItemStack tool = new com._650a.movietheatrecore.items.ItemStacks().adminTool(player);
                 java.util.Map<Integer, ItemStack> leftover = player.getInventory().addItem(tool);
                 if (!leftover.isEmpty()) {
                     sender.sendMessage(ChatColor.RED + "Your inventory is full. Clear a slot and try again.");
@@ -670,6 +670,14 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                     sendPackDebug(sender);
                     return true;
                 }
+                if (filteredArgs.get(1).equalsIgnoreCase("screen")) {
+                    if (filteredArgs.size() < 3) {
+                        sender.sendMessage(ChatColor.RED + "/mtc debug screen <screenName>");
+                        return true;
+                    }
+                    sendScreenDebug(sender, filteredArgs.get(2));
+                    return true;
+                }
                 sendDebugHelp(sender);
                 return true;
             }
@@ -704,8 +712,14 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 List<String> candidates = List.of("status", "rebuild", "url");
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
-                List<String> candidates = List.of("pack");
+                List<String> candidates = List.of("pack", "screen");
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
+            } else if (args.length == 3 && args[0].equalsIgnoreCase("debug") && args[1].equalsIgnoreCase("screen")) {
+                List<String> candidates = new ArrayList<>();
+                for (Screen screen : plugin.getScreenManager().getScreens().values()) {
+                    candidates.add(screen.getName());
+                }
+                StringUtil.copyPartialMatches(args[2], candidates, completions);
             } else if (args.length == 2 && args[0].equalsIgnoreCase("deps")) {
                 List<String> candidates = List.of("status", "reinstall");
                 StringUtil.copyPartialMatches(args[1], candidates, completions);
@@ -798,6 +812,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/mtc pack rebuild");
         sender.sendMessage(ChatColor.YELLOW + "/mtc pack url");
         sender.sendMessage(ChatColor.YELLOW + "/mtc debug pack");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc debug screen <screen>");
         sender.sendMessage(ChatColor.YELLOW + "/mtc deps status");
         sender.sendMessage(ChatColor.YELLOW + "/mtc deps reinstall");
         sender.sendMessage(ChatColor.YELLOW + "/mtc admin");
@@ -867,6 +882,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
     private void sendDebugHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "Debug commands:");
         sender.sendMessage(ChatColor.YELLOW + "/mtc debug pack");
+        sender.sendMessage(ChatColor.YELLOW + "/mtc debug screen <screen>");
     }
 
     private void sendDepsHelp(CommandSender sender) {
@@ -910,6 +926,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         boolean enabled = configuration.resourcepack_server_enabled();
         boolean running = server.isRunning();
         String bind = configuration.resourcepack_server_bind() + ":" + configuration.resourcepack_server_port();
+        String serverPublic = configuration.resourcepack_server_public_url();
         String publicUrl = configuration.pack_public_base_url();
         String packUrl = packManager.getPackUrl();
         String sha1 = packManager.getPackSha1();
@@ -919,6 +936,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GRAY + "Server enabled: " + yesNo(enabled));
         sender.sendMessage(ChatColor.GRAY + "Server running: " + yesNo(running));
         sender.sendMessage(ChatColor.GRAY + "Bind: " + bind);
+        sender.sendMessage(ChatColor.GRAY + "Server public URL: " + (serverPublic == null || serverPublic.isBlank() ? "not set" : serverPublic));
         sender.sendMessage(ChatColor.GRAY + "Public base URL: " + (publicUrl == null || publicUrl.isBlank() ? "not set" : publicUrl));
         sender.sendMessage(ChatColor.GRAY + "Pack URL: " + (packUrl == null ? "n/a" : packUrl));
         sender.sendMessage(ChatColor.GRAY + "Pack SHA1: " + (sha1 == null || sha1.isBlank() ? "n/a" : sha1));
@@ -937,7 +955,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         String url = packManager.getPackUrl();
         String sha1 = packManager.getPackSha1();
         if (url == null || url.isBlank()) {
-            sender.sendMessage(ChatColor.RED + "Pack URL not configured. Set pack.public-base-url to your HTTPS host.");
+            sender.sendMessage(ChatColor.RED + "Pack URL not configured. Set resource_pack.server.public-url or pack.public-base-url to your HTTPS host.");
             return;
         }
         sender.sendMessage(ChatColor.GREEN + "Pack URL: " + url);
@@ -969,6 +987,42 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ChatColor.RED + "Error: " + error);
             }
         }
+    }
+
+    private void sendScreenDebug(CommandSender sender, String screenName) {
+        ScreenManager screenManager = plugin.getScreenManager();
+        Screen screen = resolveScreen(screenManager, screenName);
+        if (screen == null) {
+            sender.sendMessage(ChatColor.RED + "Unknown screen: " + screenName);
+            return;
+        }
+
+        PlaybackManager playbackManager = plugin.getPlaybackManager();
+        com._650a.movietheatrecore.playback.PlaybackSession session = playbackManager.getSession(screen);
+        String state = screenManager.getState(screen.getUUID()).name();
+        String media = screen.getVideoName() == null ? "none" : screen.getVideoName();
+        int viewerCount = session == null ? 0 : session.getViewerCount();
+        int audioListeners = session == null ? 0 : session.getAudioListenerCount();
+        int frameIndex = session == null ? 0 : session.getCurrentFrameIndex();
+        int framesCount = screen.getFrames() == null ? 0 : screen.getFrames().size();
+        int mapIds = screen.getIds() == null ? 0 : screen.getIds().length;
+        String packUrl = plugin.getAudioPackManager() == null ? "n/a" : plugin.getAudioPackManager().getPackUrl();
+        String packSha1 = plugin.getAudioPackManager() == null ? "n/a" : plugin.getAudioPackManager().getPackSha1();
+
+        sender.sendMessage(ChatColor.GOLD + "MovieTheatreCore screen debug:");
+        sender.sendMessage(ChatColor.GRAY + "Name: " + screen.getName());
+        sender.sendMessage(ChatColor.GRAY + "UUID: " + (screen.getUUID() == null ? "n/a" : screen.getUUID().toString()));
+        sender.sendMessage(ChatColor.GRAY + "Size: " + screen.getWidth() + "x" + screen.getHeight());
+        sender.sendMessage(ChatColor.GRAY + "Facing: " + screen.getFacingLocation());
+        sender.sendMessage(ChatColor.GRAY + "Media: " + media);
+        sender.sendMessage(ChatColor.GRAY + "Play state: " + state);
+        sender.sendMessage(ChatColor.GRAY + "Viewers: " + viewerCount + " (audio listeners=" + audioListeners + ")");
+        sender.sendMessage(ChatColor.GRAY + "Effective radius: " + configuration.maximum_distance_to_receive());
+        sender.sendMessage(ChatColor.GRAY + "Frames count: " + framesCount);
+        sender.sendMessage(ChatColor.GRAY + "Map IDs count: " + mapIds);
+        sender.sendMessage(ChatColor.GRAY + "Current frame index: " + frameIndex);
+        sender.sendMessage(ChatColor.GRAY + "Pack URL: " + (packUrl == null || packUrl.isBlank() ? "n/a" : packUrl));
+        sender.sendMessage(ChatColor.GRAY + "Pack SHA1: " + (packSha1 == null || packSha1.isBlank() ? "n/a" : packSha1));
     }
 
     private void sendDiagnostics(CommandSender sender) {

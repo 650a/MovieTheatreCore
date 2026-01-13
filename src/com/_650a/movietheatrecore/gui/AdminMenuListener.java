@@ -97,21 +97,29 @@ public class AdminMenuListener implements Listener {
     }
 
     private void openMedia(Player player) {
-        if (!PermissionUtil.hasPermission(player, "movietheatrecore.permission.admin")) {
+        if (!PermissionUtil.hasPermission(player, "movietheatrecore.media.manage")) {
             player.sendMessage(configuration.insufficient_permissions());
             return;
         }
-        plugin.getVideosPages().put(player.getUniqueId(), 0);
-        player.openInventory(interfaces.getVideos(0));
+        if (!plugin.getGuiSupport().isAvailable()) {
+            plugin.getVideosPages().put(player.getUniqueId(), 0);
+            player.openInventory(interfaces.getVideos(0));
+            return;
+        }
+        new MediaLibraryMenu(plugin, null).open(player);
     }
 
     private void openScreens(Player player) {
-        if (!PermissionUtil.hasPermission(player, "movietheatrecore.permission.admin")) {
+        if (!PermissionUtil.hasPermission(player, "movietheatrecore.screen.manage")) {
             player.sendMessage(configuration.insufficient_permissions());
             return;
         }
-        plugin.getScreensPages().put(player.getUniqueId(), 0);
-        player.openInventory(interfaces.getScreens(0));
+        if (!plugin.getGuiSupport().isAvailable()) {
+            plugin.getScreensPages().put(player.getUniqueId(), 0);
+            player.openInventory(interfaces.getScreens(0));
+            return;
+        }
+        new ScreenListMenu(plugin).open(player);
     }
 
     private void openPlayback(Player player) {

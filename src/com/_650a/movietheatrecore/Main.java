@@ -48,6 +48,7 @@ import com._650a.movietheatrecore.gui.GuiSupportFactory;
 import com._650a.movietheatrecore.gui.LegacyGuiSupport;
 import com._650a.movietheatrecore.gui.AdminMenuListener;
 import com._650a.movietheatrecore.gui.AdminToolListener;
+import com._650a.movietheatrecore.gui.AdminWizardListener;
 import com._650a.movietheatrecore.media.MediaLibrary;
 import com._650a.movietheatrecore.media.MediaManager;
 import com._650a.movietheatrecore.playback.PlaybackManager;
@@ -301,6 +302,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	        Bukkit.getServer().getPluginManager().registerEvents(new AdminToolListener(this), this);
 	        Bukkit.getServer().getPluginManager().registerEvents(new AdminMenuListener(this), this);
+	        Bukkit.getServer().getPluginManager().registerEvents(new AdminWizardListener(this), this);
 	        Bukkit.getServer().getPluginManager().registerEvents(new InventoryClickVideos(), this);
 	        Bukkit.getServer().getPluginManager().registerEvents(new InventoryClickScreens(), this);
 	        Bukkit.getServer().getPluginManager().registerEvents(new InventoryClickPanel(), this);

@@ -185,19 +185,14 @@ public class MediaManager {
                 }
                 AudioPackManager.AudioPreparation preparation = audioPackManager.prepare(entry, videoFile);
                 library.save();
-                if (preparation.error() != null) {
-                    scheduler.runSync(() -> {
-                        if (onError != null) {
-                            onError.accept(preparation.error());
-                        }
-                    });
-                    return;
-                }
                 AudioTrack track = preparation.track();
                 boolean allowAudio = preparation.isReady();
                 PlaybackOptions options = new PlaybackOptions(allowAudio, entry, track);
                 MediaPlayback playback = new MediaPlayback(video, options, entry);
                 scheduler.runSync(() -> {
+                    if (preparation.error() != null && onError != null) {
+                        onError.accept("Audio pack not ready, playing without audio: " + preparation.error());
+                    }
                     if (onReady != null) {
                         onReady.accept(playback);
                     }
@@ -273,15 +268,16 @@ public class MediaManager {
                 }
                 AudioPackManager.AudioPreparation preparation = audioPackManager.prepare(entry, videoFile);
                 library.save();
-                if (preparation.error() != null) {
-                    scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + preparation.error()));
-                    return;
-                }
                 AudioTrack track = preparation.track();
                 boolean allowAudio = preparation.isReady();
                 PlaybackOptions options = new PlaybackOptions(allowAudio, entry, track);
                 scheduler.runSync(() -> plugin.getPlaybackManager().start(screen, video, options));
-                scheduler.runSync(() -> sender.sendMessage(ChatColor.GREEN + "Playing media " + entry.getName() + " on " + screen.getName() + "."));
+                scheduler.runSync(() -> {
+                    if (preparation.error() != null) {
+                        sender.sendMessage(ChatColor.YELLOW + "Audio pack not ready; playing without audio: " + preparation.error());
+                    }
+                    sender.sendMessage(ChatColor.GREEN + "Playing media " + entry.getName() + " on " + screen.getName() + ".");
+                });
             } catch (IOException | org.bukkit.configuration.InvalidConfigurationException e) {
                 scheduler.runSync(() -> sender.sendMessage(ChatColor.RED + "Failed to play media: " + e.getMessage()));
             }

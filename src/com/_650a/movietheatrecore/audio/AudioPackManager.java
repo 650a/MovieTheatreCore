@@ -72,7 +72,7 @@ public class AudioPackManager {
         String packUrl = resolvePackUrl();
         if (packUrl == null || packUrl.isBlank()) {
             warnMissingPackUrl();
-            return AudioPreparation.error("Resource pack URL not configured. Set pack.public-base-url to your HTTPS pack host.", null);
+            return AudioPreparation.error("Resource pack URL not configured. Set resource_pack.server.public-url or pack.public-base-url to your HTTPS pack host.", null);
         }
         if (!configuration.resourcepack_server_enabled()) {
             return AudioPreparation.error("Pack server is disabled. Enable resource_pack.server.enabled to serve pack.zip.", null);
@@ -171,7 +171,7 @@ public class AudioPackManager {
 
     private void warnMissingPackUrl() {
         if (!warnedMissingPackUrl) {
-            plugin.getLogger().warning("[MovieTheatreCore]: Resource pack URL not configured. Set pack.public-base-url to your HTTPS host.");
+            plugin.getLogger().warning("[MovieTheatreCore]: Resource pack URL not configured. Set resource_pack.server.public-url or pack.public-base-url to your HTTPS host.");
             warnedMissingPackUrl = true;
         }
     }
@@ -321,29 +321,25 @@ public class AudioPackManager {
     }
 
     private String resolvePackBaseUrl() {
-        String configured = configuration.pack_public_base_url();
-        if (configured != null && !configured.isBlank()) {
-            return normalizeBaseUrl(configured);
+        String serverUrl = normalizeBaseUrl(configuration.resourcepack_server_public_url());
+        if (isUsableBaseUrl(serverUrl)) {
+            return serverUrl;
         }
-        if (configuration.resourcepack_server_enabled()) {
-            if (!packServer.isRunning()) {
-                packServer.start();
-            }
-            if (packServer.isRunning()) {
-                String serverUrl = packServer.getPublicBaseUrl();
-                if (serverUrl != null && !serverUrl.isBlank()) {
-                    return serverUrl;
-                }
-            }
+        String configured = normalizeBaseUrl(configuration.pack_public_base_url());
+        if (isUsableBaseUrl(configured)) {
+            return configured;
         }
-        String host = configuration.resourcepack_host_url();
-        if (host != null && !host.isBlank()) {
-            return normalizeBaseUrl(host);
+        String host = normalizeBaseUrl(configuration.resourcepack_host_url());
+        if (isUsableBaseUrl(host)) {
+            return host;
         }
         return null;
     }
 
     private String normalizeBaseUrl(String baseUrl) {
+        if (baseUrl == null) {
+            return null;
+        }
         String trimmed = baseUrl.trim();
         if (trimmed.endsWith("/pack.zip")) {
             trimmed = trimmed.substring(0, trimmed.length() - "/pack.zip".length());
@@ -352,6 +348,28 @@ public class AudioPackManager {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
         return trimmed;
+    }
+
+    private boolean isUsableBaseUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return false;
+        }
+        if (isBlockedHost(baseUrl)) {
+            if (configuration.debug_pack()) {
+                plugin.getLogger().warning("[MovieTheatreCore]: Ignoring pack URL pointing at 0.0.0.0: " + baseUrl);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isBlockedHost(String baseUrl) {
+        try {
+            URL url = new URL(baseUrl);
+            return "0.0.0.0".equals(url.getHost());
+        } catch (Exception ignored) {
+            return baseUrl.contains("0.0.0.0");
+        }
     }
 
     private PackValidationResult validatePackUrl(String packUrl) {

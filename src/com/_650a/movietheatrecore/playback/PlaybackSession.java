@@ -74,6 +74,8 @@ public class PlaybackSession {
 
     private Server resourcePackServer;
     private AudioTrack audioTrack;
+    private String lastSkipReason;
+    private long lastSkipLogAt = 0L;
 
     public PlaybackSession(Main plugin, Screen screen, Video video, PlaybackManager manager, PlaybackOptions options) {
         this.plugin = plugin;
@@ -108,15 +110,15 @@ public class PlaybackSession {
             tickTask.cancel();
         }
 
-        state = PlaybackState.PREPARING;
+        state = PlaybackState.PLAYING;
         active = true;
         setupResourcePack();
         lastFrameNanos = System.nanoTime();
 
         tickTask = scheduler.runSyncRepeating(this::tick, 0L, 1L);
-        if (!packRequired) {
-            state = PlaybackState.PLAYING;
-            startAudioPlaybackIfReady();
+        startAudioPlaybackIfReady();
+        if (configuration.debug_render()) {
+            plugin.getLogger().info("[MovieTheatreCore]: Renderer started for screen " + screen.getName() + " (video=" + video.getName() + ").");
         }
     }
 
@@ -193,6 +195,7 @@ public class PlaybackSession {
 
     private void tick() {
         if (paused) {
+            logRenderSkip("paused");
             return;
         }
 
@@ -200,15 +203,6 @@ public class PlaybackSession {
         int audioInterval = Math.max(1, configuration.theatre_audio_update_interval());
         if (audioUpdateCounter++ % audioInterval == 0) {
             updateAudioListeners();
-        }
-
-        if (packRequired && !audioListeners.isEmpty() && !packPending.isEmpty()) {
-            state = PlaybackState.PREPARING;
-            return;
-        }
-        if (packRequired && state == PlaybackState.PREPARING) {
-            state = PlaybackState.PLAYING;
-            startAudioPlaybackIfReady();
         }
 
         long now = System.nanoTime();
@@ -235,6 +229,11 @@ public class PlaybackSession {
         }
 
         List<UUID> viewerSnapshot = new ArrayList<>(viewers);
+        if (viewerSnapshot.isEmpty()) {
+            logRenderSkip("no viewers within render radius");
+            rendering.set(false);
+            return;
+        }
 
         AtomicReference<BukkitTask> taskRef = new AtomicReference<>();
         BukkitTask task = scheduler.runAsync(() -> {
@@ -261,12 +260,14 @@ public class PlaybackSession {
 
     private void renderFrame(int index, List<UUID> viewerSnapshot) {
         if (!active) {
+            logRenderSkip("session inactive");
             rendering.set(false);
             return;
         }
         File frameFile = new File(video.getFramesFolder(), index + video.getFramesExtension());
         if (!frameFile.exists()) {
             Bukkit.getScheduler().runTask(plugin, () -> plugin.getLogger().warning("[MovieTheatreCore]: Missing frame " + frameFile.getName() + " for video " + video.getName()));
+            logRenderSkip("missing frame " + frameFile.getName());
             rendering.set(false);
             return;
         }
@@ -407,7 +408,11 @@ public class PlaybackSession {
         if (status == org.bukkit.event.player.PlayerResourcePackStatusEvent.Status.DECLINED
                 || status == org.bukkit.event.player.PlayerResourcePackStatusEvent.Status.FAILED_DOWNLOAD) {
             notifyPackFailure(player, status.name());
-            onError();
+            packPending.remove(uuid);
+            packApplied.remove(uuid);
+            audioListeners.remove(uuid);
+            clearResourcePack(player);
+            startAudioPlaybackIfReady();
         }
     }
 
@@ -446,7 +451,7 @@ public class PlaybackSession {
         String packUrl = audioTrack == null ? "unknown" : audioTrack.getPackUrl();
         for (Player online : Bukkit.getOnlinePlayers()) {
             if (online.hasPermission("movietheatrecore.admin")) {
-                online.sendMessage(ChatColor.RED + "MovieTheatreCore pack failed (" + status + ") for " + player.getName() + ". Playback stopped.");
+                online.sendMessage(ChatColor.RED + "MovieTheatreCore pack failed (" + status + ") for " + player.getName() + ". Video will continue without audio.");
                 online.sendMessage(ChatColor.YELLOW + "Check pack URL: " + packUrl);
                 online.sendMessage(ChatColor.YELLOW + "Run /mtc debug pack for diagnostics.");
             }
@@ -510,6 +515,35 @@ public class PlaybackSession {
                 // Ignore removal failures on legacy versions.
             }
         }
+    }
+
+    private void logRenderSkip(String reason) {
+        if (!configuration.debug_render()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (reason.equals(lastSkipReason) && now - lastSkipLogAt < 5000L) {
+            return;
+        }
+        lastSkipReason = reason;
+        lastSkipLogAt = now;
+        plugin.getLogger().info("[MovieTheatreCore]: Rendering skipped for screen " + screen.getName() + ": " + reason + ".");
+    }
+
+    public int getCurrentFrameIndex() {
+        return frameIndex;
+    }
+
+    public int getViewerCount() {
+        return viewers.size();
+    }
+
+    public int getAudioListenerCount() {
+        return audioListeners.size();
+    }
+
+    public PlaybackState getState() {
+        return state;
     }
 
     private Set<UUID> getAudioListenerSnapshot() {

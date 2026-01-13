@@ -62,6 +62,13 @@ MovieTheatreCore serves a **single rolling resource pack** that includes audio f
 /mtc screen list
 ```
 
+### GUI method (recommended)
+
+1. Run `/mtc admin` to receive your bound Admin Wand.
+2. Right-click with the wand to open the Admin GUI.
+3. Click **Screens** → **Create Screen**.
+4. Follow the wizard prompts (name → width → height).
+
 ---
 
 ## 5) Add media
@@ -102,6 +109,13 @@ Examples:
 /mtc play Lobby media Trailer
 ```
 
+### GUI method (recommended)
+
+1. Open the Admin GUI with the Admin Wand.
+2. Click **Media** → **Add Media** and follow the wizard.
+3. Click **Screens** → pick a screen → **Assign Media**.
+4. Click **Playback Controls** → **Play**.
+
 ---
 
 ## 7) Video + audio behavior (automatic)
@@ -109,7 +123,7 @@ Examples:
 - **Audio is always automatic.** There is no config toggle and no manual audio commands.
 - If a video contains audio, MovieTheatreCore extracts it and syncs it with the video.
 - Audio is heard **only by players within range** of the screen.
-- Playback **waits until the resource pack is applied** before starting.
+- Video always renders, even if the resource pack fails or is disabled.
 
 If a video has **no audio stream**, it will play silently (video still works).
 
@@ -126,13 +140,23 @@ It automatically rebuilds when:
 
 Rules:
 - The pack is applied **only** when a player is within range of an active screen **and** a video is playing.
-- If the pack fails to download, playback is stopped and admins are notified.
+- If the pack fails to download, video keeps playing and admins are notified (audio is skipped).
 - Keep `resource_pack.server.enabled: true` (default) so the server can host the pack.
 
 Pack URL format (required):
 ```
 {pack.public-base-url}/pack.zip
 ```
+
+### Pack URL selection priority
+
+MovieTheatreCore picks the first non-empty URL (never `0.0.0.0`):
+
+1. `resource_pack.server.public-url`
+2. `pack.public-base-url`
+3. `resource_pack.url`
+
+Make sure the selected host serves `/pack.zip` over HTTPS.
 
 Debug command:
 ```
@@ -152,6 +176,12 @@ You receive a **bound admin tool** (bone):
 - Cannot be dropped
 - Cannot be moved
 - Right-click opens the admin GUI
+
+From the GUI you can:
+- Create/list/delete screens
+- Add media URLs
+- Assign media to screens
+- Play/pause/stop playback
 
 ---
 
@@ -206,6 +236,12 @@ curl -I https://your-pack-domain.example/pack.zip
 
 - **“Media is loading. Try again shortly.”**
   - The video is still processing; wait and retry.
+
+- **Video not rendering**
+  - Ensure a player is within render range (default: `general.maximum-distance-to-receive`).
+  - Check screen diagnostics: `/mtc debug screen <screenName>`.
+  - Verify item frames still exist and the screen was not broken.
+  - Confirm media finished loading (watch console logs or run `/mtc media list`).
 
 ---
 

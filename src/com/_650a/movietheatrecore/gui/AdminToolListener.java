@@ -6,6 +6,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -36,6 +37,9 @@ public class AdminToolListener implements Listener {
         }
         event.setCancelled(true);
         Player player = event.getPlayer();
+        if (!ensureOwnership(player, item)) {
+            return;
+        }
         if (!PermissionUtil.hasPermission(player, "movietheatrecore.admin")) {
             player.sendMessage(configuration.insufficient_permissions());
             return;
@@ -58,6 +62,13 @@ public class AdminToolListener implements Listener {
         if (!itemStacks.isAdminTool(current) && !itemStacks.isAdminTool(cursor)) {
             return;
         }
+        Player player = event.getWhoClicked() instanceof Player ? (Player) event.getWhoClicked() : null;
+        if (player != null) {
+            if (!ensureOwnership(player, current) || !ensureOwnership(player, cursor)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
         event.setCancelled(true);
     }
 
@@ -72,6 +83,13 @@ public class AdminToolListener implements Listener {
                 event.setCancelled(true);
                 return;
             }
+        }
+    }
+
+    @EventHandler
+    public void onInventoryMoveItem(InventoryMoveItemEvent event) {
+        if (itemStacks.isAdminTool(event.getItem())) {
+            event.setCancelled(true);
         }
     }
 
@@ -93,10 +111,28 @@ public class AdminToolListener implements Listener {
         if (player == null || player.getInventory() == null) {
             return;
         }
+        boolean hasAdmin = PermissionUtil.hasPermission(player, "movietheatrecore.admin");
         for (ItemStack item : player.getInventory().getContents()) {
-            if (itemStacks.isAdminTool(item)) {
+            if (itemStacks.isAdminTool(item) && (!hasAdmin || !itemStacks.isAdminToolFor(item, player))) {
                 player.getInventory().remove(item);
             }
         }
+    }
+
+    private boolean ensureOwnership(Player player, ItemStack item) {
+        if (!itemStacks.isAdminTool(item)) {
+            return true;
+        }
+        java.util.UUID owner = itemStacks.getAdminToolOwner(item);
+        if (owner == null) {
+            itemStacks.bindAdminTool(item, player);
+            return true;
+        }
+        if (!owner.equals(player.getUniqueId())) {
+            player.getInventory().remove(item);
+            player.sendMessage(ChatColor.RED + "This admin wand is bound to another player.");
+            return false;
+        }
+        return true;
     }
 }

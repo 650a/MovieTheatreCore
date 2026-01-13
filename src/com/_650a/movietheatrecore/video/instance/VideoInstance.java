@@ -144,7 +144,15 @@ public class VideoInstance {
 	*/
 	
 	public UUID getUUID() {
-		return UUID.fromString(getConfigFile().getString("video-instance"));
+		String value = getConfigFile().getString("video-instance");
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		try {
+			return UUID.fromString(value);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
 	
 	/**
@@ -156,14 +164,19 @@ public class VideoInstance {
 	public Screen getScreen() {
 		
 		if(screen != null) return screen;
+		UUID uuid = getUUID();
+		if (uuid == null) {
+			return null;
+		}
 		
 		for(Screen screen : plugin.getRegisteredScreens()) {
-			if(screen.getUUID().toString().equals(getUUID().toString())) {
+			UUID screenId = screen.getUUID();
+			if(screenId != null && screenId.equals(uuid)) {
 				this.screen = screen;
 				return screen;
 			}
 		}
-		return new Screen(getUUID());
+		return new Screen(uuid);
 	}
 	
 	/**

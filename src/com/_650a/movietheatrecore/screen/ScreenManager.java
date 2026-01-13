@@ -72,6 +72,10 @@ public class ScreenManager {
                 Bukkit.getLogger().warning("[MovieTheatreCore]: Screen configuration " + screenConfiguration.getName() + " references a missing world.");
                 continue;
             }
+            if (screen.getUUID() == null) {
+                Bukkit.getLogger().warning("[MovieTheatreCore]: Screen configuration " + screenConfiguration.getName() + " is missing a UUID. Skipping.");
+                continue;
+            }
 
             ensureScaleMode(screen);
 
@@ -142,6 +146,10 @@ public class ScreenManager {
                     frame.setItem(itemStacks.getMap(ids[i]));
                 }
             }
+            if (configuration.debug_screens()) {
+                plugin.getLogger().info("[MovieTheatreCore]: Assigned " + Math.min(targetFrames.size(), ids.length)
+                        + " map frames to screen " + screen.getName() + ".");
+            }
 
             screen.setFrames(frames.isEmpty() ? new ArrayList<>(targetFrames) : frames);
 
@@ -186,9 +194,17 @@ public class ScreenManager {
     }
 
     public void deleteScreen(Screen screen) {
-        screens.remove(screen.getUUID());
-        states.remove(screen.getUUID());
+        if (screen == null) {
+            return;
+        }
+        UUID id = screen.getUUID();
+        if (id != null) {
+            screens.remove(id);
+            states.remove(id);
+        }
         plugin.getRegisteredScreens().remove(screen);
+        plugin.getScreensBlocks().entrySet().removeIf(entry -> entry.getValue() == screen);
+        plugin.getScreensFrames().entrySet().removeIf(entry -> entry.getValue() == screen);
         screen.delete();
     }
 

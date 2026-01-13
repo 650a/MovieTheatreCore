@@ -100,7 +100,15 @@ pack:
   public-base-url: "https://pack.yourdomain.example"
 ```
 
-The built-in pack server is still used internally, but the **public URL must be HTTPS** and reachable by players.
+Pack URL selection priority (first non-empty, never `0.0.0.0`):
+
+1. `resource_pack.server.public-url`
+2. `pack.public-base-url`
+3. `resource_pack.url`
+
+The built-in pack server can still be used internally, but the **public URL must be HTTPS** and reachable by players.
+
+Video rendering is always map/itemframe-based and **does not depend on the resource pack** (audio only).
 
 ## Auto-installed Dependencies
 
@@ -145,6 +153,12 @@ dependencies:
   ```
   curl -I https://your-pack-domain.example/pack.zip
   ```
+
+### Video not rendering
+
+- Ensure a player is within render range (`general.maximum-distance-to-receive`).
+- Run `/mtc debug screen <screenName>` for per-screen details.
+- Confirm item frames still exist and the screen was not broken.
 
 ### Updater 404 / missing release asset
 

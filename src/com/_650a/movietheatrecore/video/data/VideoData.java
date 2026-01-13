@@ -18,6 +18,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.map.MapView;
 
 import com._650a.movietheatrecore.Main;
+import com._650a.movietheatrecore.configuration.Configuration;
 import com._650a.movietheatrecore.image.helpers.ImageHelper;
 import com._650a.movietheatrecore.image.renderer.ImageRenderer;
 import com._650a.movietheatrecore.tasks.TaskAsyncLoadConfigurations;
@@ -42,6 +43,7 @@ import com._650a.movietheatrecore.video.data.thumbnail.Thumbnail;
 public class VideoData {
 	
 	private final Main plugin = Main.getPlugin(Main.class);
+	private final Configuration configuration = new Configuration();
 	
 	private Video video;
 	private ArrayList<Integer> duplicated = new ArrayList<>();	
@@ -79,6 +81,10 @@ public class VideoData {
 		imageRenderer.createMaps(Bukkit.getWorlds().get(0));
 		
 		new Thumbnail(getThumbnail()).create(imageRenderer);
+		if (configuration.debug_screens()) {
+			int mapCount = getMapsFolder().listFiles() == null ? 0 : getMapsFolder().listFiles().length;
+			plugin.getLogger().info("[MovieTheatreCore]: Created " + mapCount + " map thumbnails for video " + video.getName() + ".");
+		}
 	}
 	
 	/**

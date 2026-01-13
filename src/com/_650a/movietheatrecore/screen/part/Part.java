@@ -130,7 +130,11 @@ public class Part {
 	*/
 	
 	public Screen getScreen() {
-		return new Screen(UUID.fromString(getConfigFile().getString("screen.uuid")));
+		UUID uuid = parseUuid(getConfigFile().getString("screen.uuid"));
+		if (uuid == null) {
+			return null;
+		}
+		return new Screen(uuid);
 	}
 	
 	/**
@@ -170,7 +174,11 @@ public class Part {
 	*/
 	
 	public Block getBlock() {
-		return new Location(Bukkit.getWorld(getConfigFile().getString("block.location.world")), getConfigFile().getDouble("block.location.x"), getConfigFile().getDouble("block.location.y"),
+		org.bukkit.World world = Bukkit.getWorld(getConfigFile().getString("block.location.world"));
+		if (world == null) {
+			return null;
+		}
+		return new Location(world, getConfigFile().getDouble("block.location.x"), getConfigFile().getDouble("block.location.y"),
 				getConfigFile().getDouble("block.location.z")).getBlock();
 	}
 	
@@ -181,8 +189,11 @@ public class Part {
 	*/
 	
 	public Location getItemFrameLocation() {
-				
-		return new Location(Bukkit.getWorld(getConfigFile().getString("item-frame.location.world")), getConfigFile().getDouble("item-frame.location.x"),
+		org.bukkit.World world = Bukkit.getWorld(getConfigFile().getString("item-frame.location.world"));
+		if (world == null) {
+			return null;
+		}
+		return new Location(world, getConfigFile().getDouble("item-frame.location.x"),
 				getConfigFile().getDouble("item-frame.location.y"), getConfigFile().getDouble("item-frame.location.z"));
 	}
 	
@@ -193,10 +204,10 @@ public class Part {
 	*/
 	
 	public ItemFrame getItemFrame() {
-		
-		Location location = new Location(Bukkit.getWorld(getConfigFile().getString("item-frame.location.world")), getConfigFile().getDouble("item-frame.location.x"),
-				getConfigFile().getDouble("item-frame.location.y"), getConfigFile().getDouble("item-frame.location.z"));
-		
+		Location location = getItemFrameLocation();
+		if (location == null || location.getWorld() == null) {
+			return null;
+		}
 		if(getNearbyEntities(location, 0).toArray().length <= 0) {
 			return null;
 		}
@@ -215,7 +226,9 @@ public class Part {
      */
 	
 	public Collection<Entity> getNearbyEntities(Location location, int radius) {
-		
+		if (location == null || location.getWorld() == null) {
+			return java.util.Collections.emptyList();
+		}
 		if(plugin.isOld()) {
 		    int chunkRadius = radius < 16 ? 1 : (radius - (radius % 16)) / 16;
 		    HashSet<Entity> radiusEntities = new HashSet < Entity > ();
@@ -232,5 +245,16 @@ public class Part {
 		    return radiusEntities;
 		}
 		return location.getWorld().getNearbyEntities(location, radius, radius, radius);
+	}
+
+	private UUID parseUuid(String value) {
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		try {
+			return UUID.fromString(value);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
 }

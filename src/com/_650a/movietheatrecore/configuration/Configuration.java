@@ -147,6 +147,10 @@ public class Configuration {
 			fileconfiguration.set("resource_pack.server.port", 8123);
 			fileconfiguration.set("resource_pack.server.public-url", "");
 
+			fileconfiguration.set("debug.render", false);
+			fileconfiguration.set("debug.pack", false);
+			fileconfiguration.set("debug.screens", false);
+
 			fileconfiguration.set("advanced.delete-frames-on-loaded", false);
 			fileconfiguration.set("advanced.delete-video-on-loaded", false);
 			fileconfiguration.set("advanced.detect-duplicated-frames", false);
@@ -709,6 +713,18 @@ public class Configuration {
 		return getStringValue("resource_pack.server.public-url", null, "");
 	}
 
+	public boolean debug_render() {
+		return getBooleanValue("debug.render", null, false);
+	}
+
+	public boolean debug_pack() {
+		return getBooleanValue("debug.pack", null, false);
+	}
+
+	public boolean debug_screens() {
+		return getBooleanValue("debug.screens", null, false);
+	}
+
 	public void set_resourcepack_sha1(String sha1) {
 		fileconfiguration = new YamlConfiguration();
 		try {
@@ -849,6 +865,10 @@ public class Configuration {
 		changed |= ensureString(configuration, "resource_pack.server.bind", null, "0.0.0.0");
 		changed |= ensureInt(configuration, "resource_pack.server.port", null, 8123);
 		changed |= ensureString(configuration, "resource_pack.server.public-url", null, "");
+
+		changed |= ensureBoolean(configuration, "debug.render", null, false);
+		changed |= ensureBoolean(configuration, "debug.pack", null, false);
+		changed |= ensureBoolean(configuration, "debug.screens", null, false);
 
 		changed |= ensureBoolean(configuration, "advanced.delete-frames-on-loaded", "plugin.delete-frames-on-loaded", false);
 		changed |= ensureBoolean(configuration, "advanced.delete-video-on-loaded", "plugin.delete-video-on-loaded", false);
