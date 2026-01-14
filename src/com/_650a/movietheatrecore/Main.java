@@ -452,6 +452,9 @@ public class Main extends JavaPlugin implements Listener {
 	
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        if (playbackManager != null) {
+            playbackManager.resetPackState(event.getPlayer());
+        }
         injectPlayer(event.getPlayer());
     }
 

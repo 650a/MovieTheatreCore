@@ -19,10 +19,12 @@ public class PlaybackManager {
     private final Main plugin;
     private final ScreenManager screenManager;
     private final Map<UUID, PlaybackSession> sessions = new HashMap<>();
+    private final ResourcePackTracker packTracker;
 
     public PlaybackManager(Main plugin, ScreenManager screenManager) {
         this.plugin = plugin;
         this.screenManager = screenManager;
+        this.packTracker = new ResourcePackTracker(new com._650a.movietheatrecore.configuration.Configuration());
     }
 
     public PlaybackSession start(Screen screen, Video video) {
@@ -89,9 +91,26 @@ public class PlaybackManager {
     }
 
     public void handleResourcePackStatus(Player player, Status status) {
+        packTracker.recordStatus(player, status);
         for (PlaybackSession session : sessions.values()) {
             session.handleResourcePackStatus(player, status);
         }
+    }
+
+    public boolean shouldSendResourcePack(Player player, String url, byte[] sha1) {
+        return packTracker.shouldSend(player, url, sha1);
+    }
+
+    public void markResourcePackSent(Player player, String url, byte[] sha1) {
+        packTracker.markSent(player, url, sha1);
+    }
+
+    public ResourcePackTracker.PackStatus getPackStatus(Player player) {
+        return packTracker.getStatus(player);
+    }
+
+    public void resetPackState(Player player) {
+        packTracker.clear(player);
     }
 
     public boolean shouldKeepResourcePack(Player player) {

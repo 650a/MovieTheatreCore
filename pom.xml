@@ -31,6 +31,10 @@
       <id>mg-dev</id>
       <url>https://ci.mg-dev.eu/plugin/repository/everything/</url>
     </repository>
+    <repository>
+      <id>dmulloy2-repo</id>
+      <url>https://repo.dmulloy2.net/repository/public/</url>
+    </repository>
   </repositories>
 
   <dependencies>
@@ -83,6 +87,14 @@
       <groupId>org.tukaani</groupId>
       <artifactId>xz</artifactId>
       <version>1.9</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.comphenix.protocol</groupId>
+      <artifactId>ProtocolLib</artifactId>
+      <version>5.2.0</version>
+      <scope>provided</scope>
+      <optional>true</optional>
     </dependency>
 
     <!-- Optional (only if your code imports it). Keep provided so it’s not shaded into your jar. -->

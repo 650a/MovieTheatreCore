@@ -42,6 +42,7 @@ public class AudioPackManager {
     private final FFprobeService ffprobeService = new FFprobeService();
     private final Object buildLock = new Object();
     private boolean warnedMissingPackUrl = false;
+    private boolean warnedInvalidPackUrl = false;
 
     private final File packFolder;
     private final File packFile;
@@ -72,10 +73,7 @@ public class AudioPackManager {
         String packUrl = resolvePackUrl();
         if (packUrl == null || packUrl.isBlank()) {
             warnMissingPackUrl();
-            return AudioPreparation.error("Resource pack URL not configured. Set pack.public-base-url to your HTTPS pack host.", null);
-        }
-        if (!configuration.resourcepack_server_enabled()) {
-            return AudioPreparation.error("Pack server is disabled. Enable resource_pack.server.enabled to serve pack.zip.", null);
+            return AudioPreparation.error("Audio requires the resource pack. Configure resource_pack.server.public-url, pack.public-base-url, or resource_pack.url to enable audio.", null);
         }
 
         ensurePackReady(entryChanged);
@@ -83,7 +81,7 @@ public class AudioPackManager {
         PackValidationResult validation = validatePackUrl(packUrl);
         logValidationWarnings(validation);
         if (validation.hasErrors()) {
-            return AudioPreparation.error("Resource pack URL validation failed. Fix the pack host and try again.", validation);
+            return AudioPreparation.error("Audio requires a public pack URL. Fix the pack host and try again.", validation);
         }
 
         int chunkCount = entry.getAudioChunks();
@@ -94,7 +92,7 @@ public class AudioPackManager {
 
         byte[] sha1 = decodeSha1(configuration.resourcepack_sha1());
         if (sha1 == null || sha1.length == 0) {
-            return AudioPreparation.error("Resource pack SHA1 is missing. Rebuild the pack and try again.", validation);
+            return AudioPreparation.error("Audio pack SHA1 is missing. Rebuild the pack and try again.", validation);
         }
         return AudioPreparation.ready(new AudioTrack(entry.getId(), chunkCount, configuration.audio_chunk_seconds(), packUrl, sha1), validation);
     }
@@ -171,8 +169,15 @@ public class AudioPackManager {
 
     private void warnMissingPackUrl() {
         if (!warnedMissingPackUrl) {
-            plugin.getLogger().warning("[MovieTheatreCore]: Resource pack URL not configured. Set pack.public-base-url to your HTTPS host.");
+            plugin.getLogger().warning("[MovieTheatreCore]: Resource pack URL not configured. Set resource_pack.server.public-url, pack.public-base-url, or resource_pack.url to a public http(s) base URL.");
             warnedMissingPackUrl = true;
+        }
+    }
+
+    private void warnInvalidPackUrl() {
+        if (!warnedInvalidPackUrl) {
+            plugin.getLogger().warning("[MovieTheatreCore]: Resource pack URL is invalid. Use a public http(s) base URL and avoid localhost/0.0.0.0/private IPs.");
+            warnedInvalidPackUrl = true;
         }
     }
 
@@ -312,6 +317,16 @@ public class AudioPackManager {
     private String resolvePackUrl() {
         String resolved = configuration.resolveResourcePackUrl();
         if (resolved == null || resolved.isBlank()) {
+            String candidate = configuration.resourcepack_server_public_url();
+            if (candidate == null || candidate.isBlank()) {
+                candidate = configuration.pack_public_base_url();
+            }
+            if (candidate == null || candidate.isBlank()) {
+                candidate = configuration.resourcepack_host_url();
+            }
+            if (candidate != null && !candidate.isBlank()) {
+                warnInvalidPackUrl();
+            }
             return null;
         }
         if (configuration.debug_pack()) {
@@ -329,8 +344,8 @@ public class AudioPackManager {
         }
         try {
             URL url = new URL(packUrl);
-            if (!"https".equalsIgnoreCase(url.getProtocol())) {
-                errors.add("Pack URL must be HTTPS.");
+            if (!"https".equalsIgnoreCase(url.getProtocol()) && !"http".equalsIgnoreCase(url.getProtocol())) {
+                errors.add("Pack URL must start with http:// or https://.");
             }
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setInstanceFollowRedirects(false);

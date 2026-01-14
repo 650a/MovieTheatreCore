@@ -170,6 +170,7 @@ public class ItemStacks {
 		meta.setDisplayName(configuration.item_admin_tool_name());
 		meta.setLore(Arrays.asList(configuration.item_admin_tool_lore()));
 		applyGuiFlags(meta);
+		meta.getPersistentDataContainer().set(adminToolKey(), PersistentDataType.BYTE, (byte) 1);
 		if (player != null) {
 			meta.getPersistentDataContainer().set(adminToolOwnerKey(), PersistentDataType.STRING, player.getUniqueId().toString());
 		}
@@ -182,6 +183,9 @@ public class ItemStacks {
 			return false;
 		}
 		ItemMeta meta = item.getItemMeta();
+		if (meta.getPersistentDataContainer().has(adminToolKey(), PersistentDataType.BYTE)) {
+			return item.getType() == Material.BONE;
+		}
 		return item.getType() == Material.BONE
 				&& meta.hasDisplayName()
 				&& meta.getDisplayName().equals(configuration.item_admin_tool_name());
@@ -217,8 +221,13 @@ public class ItemStacks {
 			return;
 		}
 		ItemMeta meta = item.getItemMeta();
+		meta.getPersistentDataContainer().set(adminToolKey(), PersistentDataType.BYTE, (byte) 1);
 		meta.getPersistentDataContainer().set(adminToolOwnerKey(), PersistentDataType.STRING, player.getUniqueId().toString());
 		item.setItemMeta(meta);
+	}
+
+	private NamespacedKey adminToolKey() {
+		return new NamespacedKey(plugin, "admin-tool");
 	}
 
 	private NamespacedKey adminToolOwnerKey() {

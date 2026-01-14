@@ -926,7 +926,8 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         boolean enabled = configuration.resourcepack_server_enabled();
         boolean running = server.isRunning();
         String bind = configuration.resourcepack_server_bind() + ":" + configuration.resourcepack_server_port();
-        String serverPublic = configuration.pack_public_base_url();
+        String serverPublic = configuration.resourcepack_server_public_url();
+        String fallbackPublic = configuration.pack_public_base_url();
         String legacyUrl = configuration.resourcepack_host_url();
         String packUrl = packManager.getPackUrl();
         String sha1 = packManager.getPackSha1();
@@ -937,6 +938,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GRAY + "Server running: " + yesNo(running));
         sender.sendMessage(ChatColor.GRAY + "Bind: " + bind);
         sender.sendMessage(ChatColor.GRAY + "Public base URL: " + (serverPublic == null || serverPublic.isBlank() ? "not set" : serverPublic));
+        sender.sendMessage(ChatColor.GRAY + "Fallback base URL: " + (fallbackPublic == null || fallbackPublic.isBlank() ? "not set" : fallbackPublic));
         sender.sendMessage(ChatColor.GRAY + "Legacy pack URL: " + (legacyUrl == null || legacyUrl.isBlank() ? "not set" : legacyUrl));
         sender.sendMessage(ChatColor.GRAY + "Pack URL: " + (packUrl == null ? "n/a" : packUrl));
         sender.sendMessage(ChatColor.GRAY + "Pack SHA1: " + (sha1 == null || sha1.isBlank() ? "n/a" : sha1));
@@ -955,7 +957,7 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         String url = packManager.getPackUrl();
         String sha1 = packManager.getPackSha1();
         if (url == null || url.isBlank()) {
-            sender.sendMessage(ChatColor.RED + "Pack URL not configured. Set pack.public-base-url to your HTTPS host.");
+            sender.sendMessage(ChatColor.RED + "Pack URL not configured. Set resource_pack.server.public-url, pack.public-base-url, or resource_pack.url to a public http(s) base URL.");
             return;
         }
         sender.sendMessage(ChatColor.GREEN + "Pack URL: " + url);
@@ -973,8 +975,8 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
 
         sender.sendMessage(ChatColor.GOLD + "MovieTheatreCore pack debug:");
         sender.sendMessage(ChatColor.GRAY + "Public base URL: " + (diagnostics.publicBaseUrl() == null || diagnostics.publicBaseUrl().isBlank() ? "not set" : diagnostics.publicBaseUrl()));
-        sender.sendMessage(ChatColor.GRAY + "Internal port: " + diagnostics.internalPort());
-        sender.sendMessage(ChatColor.GRAY + "Pack URL: " + (diagnostics.packUrl() == null ? "n/a" : diagnostics.packUrl()));
+        sender.sendMessage(ChatColor.GRAY + "Server bind: " + configuration.resourcepack_server_bind() + ":" + configuration.resourcepack_server_port());
+        sender.sendMessage(ChatColor.GRAY + "Computed pack URL (client): " + (diagnostics.packUrl() == null ? "n/a" : diagnostics.packUrl()));
         sender.sendMessage(ChatColor.GRAY + "Pack SHA1: " + (diagnostics.sha1() == null || diagnostics.sha1().isBlank() ? "n/a" : diagnostics.sha1()));
         sender.sendMessage(ChatColor.GRAY + "Pack size: " + diagnostics.packSize() + " bytes");
         sender.sendMessage(ChatColor.GRAY + "Last build: " + formatTimestamp(diagnostics.lastBuild()));
@@ -1004,10 +1006,13 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         int viewerCount = session == null ? 0 : session.getViewerCount();
         int audioListeners = session == null ? 0 : session.getAudioListenerCount();
         int frameIndex = session == null ? 0 : session.getCurrentFrameIndex();
+        long lastMapSendAt = session == null ? 0L : session.getLastMapSendAt();
+        int mapSendRate = session == null ? 0 : session.getLastMapSendRate();
         int framesCount = screen.getFrames() == null ? 0 : screen.getFrames().size();
         int mapIds = screen.getIds() == null ? 0 : screen.getIds().length;
-        String packUrl = plugin.getAudioPackManager() == null ? "n/a" : plugin.getAudioPackManager().getPackUrl();
+        String packUrl = configuration.resolveResourcePackUrl();
         String packSha1 = plugin.getAudioPackManager() == null ? "n/a" : plugin.getAudioPackManager().getPackSha1();
+        String bindAddress = configuration.resourcepack_server_bind() + ":" + configuration.resourcepack_server_port();
 
         sender.sendMessage(ChatColor.GOLD + "MovieTheatreCore screen debug:");
         sender.sendMessage(ChatColor.GRAY + "Name: " + screen.getName());
@@ -1021,7 +1026,9 @@ public class MovieTheatreCoreCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GRAY + "Frames count: " + framesCount);
         sender.sendMessage(ChatColor.GRAY + "Map IDs count: " + mapIds);
         sender.sendMessage(ChatColor.GRAY + "Current frame index: " + frameIndex);
-        sender.sendMessage(ChatColor.GRAY + "Pack URL: " + (packUrl == null || packUrl.isBlank() ? "n/a" : packUrl));
+        sender.sendMessage(ChatColor.GRAY + "Map updates: " + (mapSendRate > 0 ? (mapSendRate + "/s") : "idle") + " (last=" + formatTimestamp(lastMapSendAt) + ")");
+        sender.sendMessage(ChatColor.GRAY + "Computed pack URL (client): " + (packUrl == null || packUrl.isBlank() ? "n/a" : packUrl));
+        sender.sendMessage(ChatColor.GRAY + "Server bind address: " + bindAddress);
         sender.sendMessage(ChatColor.GRAY + "Pack SHA1: " + (packSha1 == null || packSha1.isBlank() ? "n/a" : packSha1));
     }
 

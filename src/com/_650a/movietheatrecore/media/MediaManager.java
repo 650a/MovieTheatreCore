@@ -461,6 +461,9 @@ public class MediaManager {
             if (exitCode != 0 || output.isEmpty()) {
                 Bukkit.getLogger().warning("[MovieTheatreCore]: YouTube resolver exited with code " + exitCode + ". stderr: " + errorOutput);
                 String message = "Resolver failed to return a direct URL.";
+                if (isInvalidCookiesError(errorOutput)) {
+                    message = "YouTube cookies are invalid or expired. Re-export youtube-cookies.txt and try again. See docs/USER_GUIDE.md (YouTube cookies section).";
+                }
                 if (!cookiesUsed) {
                     message = "YouTube blocked this request without cookies. Add youtube-cookies.txt or use a direct MP4/WEBM URL.";
                 } else if (cookieStatus != null && cookieStatus.expired) {
@@ -497,6 +500,17 @@ public class MediaManager {
             return defaultFile.exists() ? defaultFile : null;
         }
         return new File(cookiesPath);
+    }
+
+    private boolean isInvalidCookiesError(String errorOutput) {
+        if (errorOutput == null || errorOutput.isBlank()) {
+            return false;
+        }
+        String normalized = errorOutput.toLowerCase(Locale.ROOT);
+        return normalized.contains("cookie") && (normalized.contains("expired")
+                || normalized.contains("invalid")
+                || normalized.contains("not a valid")
+                || normalized.contains("cookies.txt"));
     }
 
     private CookieStatus evaluateCookies(File cookiesFile) {

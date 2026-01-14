@@ -62,6 +62,7 @@ public class PlaybackSession {
     private final Set<UUID> audioListeners = new HashSet<>();
     private final Set<UUID> packPending = new HashSet<>();
     private final Set<UUID> packApplied = new HashSet<>();
+    private final Set<UUID> audioUnavailableNotified = new HashSet<>();
 
     private BukkitTask tickTask;
     private java.util.function.Predicate<Player> audioAudienceFilter;
@@ -82,6 +83,10 @@ public class PlaybackSession {
     private long lastFrameLogAt = 0L;
     private int lastLoggedFrame = -1;
     private long lastScreenDebugAt = 0L;
+    private long lastMapSendAt = 0L;
+    private long mapSendWindowStart = 0L;
+    private int mapSendWindowCount = 0;
+    private int lastMapSendRate = 0;
 
     public PlaybackSession(Main plugin, Screen screen, Video video, PlaybackManager manager, PlaybackOptions options) {
         this.plugin = plugin;
@@ -208,6 +213,7 @@ public class PlaybackSession {
         audioListeners.clear();
         packPending.clear();
         packApplied.clear();
+        audioUnavailableNotified.clear();
         state = PlaybackState.IDLE;
         stopping.set(false);
     }
@@ -327,6 +333,7 @@ public class PlaybackSession {
                 }
             }
         }
+        recordMapSend();
         logScreenDebugSnapshot("frame");
         if (configuration.debug_render()) {
             long now = System.currentTimeMillis();
@@ -472,20 +479,30 @@ public class PlaybackSession {
         audioListeners.add(player.getUniqueId());
         if (options.allowAudio()) {
             if (audioTrack != null) {
-                sendResourcePack(player, audioTrack.getPackUrl(), audioTrack.getPackSha1());
-                markPackPending(player);
+                String packUrl = audioTrack.getPackUrl();
+                byte[] sha1 = audioTrack.getPackSha1();
+                if (manager.shouldSendResourcePack(player, packUrl, sha1)) {
+                    sendResourcePack(player, packUrl, sha1);
+                    manager.markResourcePackSent(player, packUrl, sha1);
+                    markPackPending(player);
+                }
             } else if (video.isAudioEnabled() && resourcePackServer != null) {
                 String packUrl = configuration.resolveResourcePackUrl();
                 if (packUrl != null && !packUrl.isBlank()) {
-                    sendResourcePack(player, packUrl, new byte[0]);
-                    markPackPending(player);
-                    for (int i = 0; i < video.getAudioChannels(); i++) {
-                        player.playSound(player.getLocation(), "movietheatrecore." + i, 10, 1);
+                    if (manager.shouldSendResourcePack(player, packUrl, new byte[0])) {
+                        sendResourcePack(player, packUrl, new byte[0]);
+                        manager.markResourcePackSent(player, packUrl, new byte[0]);
+                        markPackPending(player);
+                        for (int i = 0; i < video.getAudioChannels(); i++) {
+                            player.playSound(player.getLocation(), "movietheatrecore." + i, 10, 1);
+                        }
                     }
                 } else if (configuration.debug_pack()) {
                     plugin.getLogger().warning("[MovieTheatreCore]: Skipping resource pack send for " + player.getName() + " because no public pack URL is configured.");
                 }
             }
+        } else if (video.isAudioEnabled()) {
+            notifyAudioUnavailable(player);
         }
     }
 
@@ -517,6 +534,7 @@ public class PlaybackSession {
             }
             clearResourcePack(player);
             startAudioPlaybackIfReady();
+            notifyAudioUnavailable(player);
         }
     }
 
@@ -546,8 +564,16 @@ public class PlaybackSession {
         if (audioTrack == null || audioPlayback != null) {
             return;
         }
-        if (packRequired && !audioListeners.isEmpty() && !packPending.isEmpty()) {
-            return;
+        if (packRequired && !audioListeners.isEmpty()) {
+            if (!packPending.isEmpty()) {
+                return;
+            }
+            for (UUID uuid : audioListeners) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player != null && manager.getPackStatus(player) != ResourcePackTracker.PackStatus.ACCEPTED) {
+                    return;
+                }
+            }
         }
         lastFrameNanos = System.nanoTime();
         audioPlayback = new AudioPlayback(scheduler, audioTrack, this::getAudioListenerSnapshot, this::getAudioSpeakerLocation, () -> active);
@@ -562,6 +588,23 @@ public class PlaybackSession {
                 online.sendMessage(ChatColor.YELLOW + "Check pack URL: " + packUrl);
                 online.sendMessage(ChatColor.YELLOW + "Run /mtc debug pack for diagnostics.");
             }
+        }
+    }
+
+    private void notifyAudioUnavailable(Player player) {
+        if (player == null) {
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        if (audioUnavailableNotified.contains(uuid)) {
+            return;
+        }
+        audioUnavailableNotified.add(uuid);
+        String message = ChatColor.YELLOW + "Audio requires the resource pack; video will still play.";
+        try {
+            plugin.getActionBar().send(player, message);
+        } catch (Exception ignored) {
+            player.sendMessage(message);
         }
     }
 
@@ -657,6 +700,14 @@ public class PlaybackSession {
         return audioListeners.size();
     }
 
+    public long getLastMapSendAt() {
+        return lastMapSendAt;
+    }
+
+    public int getLastMapSendRate() {
+        return lastMapSendRate;
+    }
+
     public PlaybackState getState() {
         return state;
     }
@@ -671,6 +722,20 @@ public class PlaybackSession {
 
     private Location getAudioSpeakerLocation() {
         return screen.getAudioSpeakerLocation();
+    }
+
+    private void recordMapSend() {
+        long now = System.currentTimeMillis();
+        lastMapSendAt = now;
+        if (mapSendWindowStart == 0L) {
+            mapSendWindowStart = now;
+        }
+        if (now - mapSendWindowStart >= 1000L) {
+            lastMapSendRate = mapSendWindowCount;
+            mapSendWindowStart = now;
+            mapSendWindowCount = 0;
+        }
+        mapSendWindowCount++;
     }
 
     private List<Entity> getNearbyEntities(Location location, int radius) {

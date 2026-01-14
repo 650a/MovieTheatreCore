@@ -149,6 +149,7 @@ public class Configuration {
 			fileconfiguration.set("resource_pack.server.bind", "0.0.0.0");
 			fileconfiguration.set("resource_pack.server.port", 8123);
 			fileconfiguration.set("resource_pack.server.public-url", "");
+			fileconfiguration.set("resource_pack.apply-cooldown-seconds", 60);
 
 			fileconfiguration.set("debug.render", false);
 			fileconfiguration.set("debug.pack", false);
@@ -724,16 +725,22 @@ public class Configuration {
 		return getStringValue("resource_pack.server.public-url", null, "");
 	}
 
+	public int resourcepack_apply_cooldown_seconds() {
+		return getIntValue("resource_pack.apply-cooldown-seconds", null, 60);
+	}
+
 	public String resolveResourcePackUrl() {
-		String base = normalizePublicBaseUrl(pack_public_base_url());
+		String base = resolveResourcePackBaseUrl();
 		if (base == null) {
 			return null;
 		}
-		return base + "/pack.zip";
+		return appendPackZip(base);
 	}
 
 	public String resolveResourcePackBaseUrl() {
-		return normalizePublicBaseUrl(pack_public_base_url());
+		String serverPublic = resourcepack_server_public_url();
+		String base = firstNonBlank(serverPublic, pack_public_base_url(), resourcepack_host_url());
+		return normalizePublicBaseUrl(base);
 	}
 
 	public boolean debug_render() {
@@ -764,7 +771,7 @@ public class Configuration {
 		}
 		try {
 			java.net.URL url = new java.net.URL(trimmed);
-			if (!"https".equalsIgnoreCase(url.getProtocol())) {
+			if (!"https".equalsIgnoreCase(url.getProtocol()) && !"http".equalsIgnoreCase(url.getProtocol())) {
 				return null;
 			}
 			if (isBlockedHost(url.getHost())) {
@@ -774,6 +781,26 @@ public class Configuration {
 			return null;
 		}
 		return trimmed;
+	}
+
+	private String appendPackZip(String base) {
+		String trimmed = base.trim();
+		if (trimmed.endsWith("/")) {
+			trimmed = trimmed.substring(0, trimmed.length() - 1);
+		}
+		return trimmed + "/pack.zip";
+	}
+
+	private String firstNonBlank(String... values) {
+		if (values == null) {
+			return null;
+		}
+		for (String value : values) {
+			if (value != null && !value.trim().isEmpty()) {
+				return value;
+			}
+		}
+		return null;
 	}
 
 	private boolean isBlockedHost(String host) {
@@ -822,14 +849,14 @@ public class Configuration {
 	}
 
 	public boolean validatePackPublicBaseUrl() {
-		String value = pack_public_base_url();
+		String value = firstNonBlank(resourcepack_server_public_url(), pack_public_base_url(), resourcepack_host_url());
 		if (value == null || value.isBlank()) {
-			Bukkit.getLogger().warning("[MovieTheatreCore]: pack.public-base-url is not configured; audio packs will be disabled until it is set.");
+			Bukkit.getLogger().warning("[MovieTheatreCore]: Resource pack URL not configured. Set resource_pack.server.public-url, pack.public-base-url, or resource_pack.url to a public http(s) base URL.");
 			return false;
 		}
 		String normalized = normalizePublicBaseUrl(value);
 		if (normalized == null) {
-			Bukkit.getLogger().warning("[MovieTheatreCore]: pack.public-base-url must be a public HTTPS URL (example: https://pack.example.com). Audio packs will be disabled.");
+			Bukkit.getLogger().warning("[MovieTheatreCore]: Resource pack URL must be a public http(s) base URL (example: https://pack.example.com). Local/private bind addresses are not allowed.");
 			return false;
 		}
 		return true;
@@ -978,6 +1005,7 @@ public class Configuration {
 		changed |= ensureString(configuration, "resource_pack.server.bind", null, "0.0.0.0");
 		changed |= ensureInt(configuration, "resource_pack.server.port", null, 8123);
 		changed |= ensureString(configuration, "resource_pack.server.public-url", null, "");
+		changed |= ensureInt(configuration, "resource_pack.apply-cooldown-seconds", null, 60);
 
 		changed |= ensureBoolean(configuration, "debug.render", null, false);
 		changed |= ensureBoolean(configuration, "debug.pack", null, false);

@@ -5,6 +5,7 @@ author: 650a
 description: Multi-room cinema media playback for Minecraft servers.
 website: https://b0x.us
 api-version: 1.13
+softdepend: [ProtocolLib]
 
 commands:
   movietheatrecore:

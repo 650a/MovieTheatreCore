@@ -1,6 +1,6 @@
 # MovieTheatreCore User Guide
 
-MovieTheatreCore lets you build in-game cinemas with multiple screens, schedule shows, and play synchronized video + audio for nearby players. Everything is automatic: media downloads, resource packs, and audio syncing are handled for you.
+MovieTheatreCore lets you build in-game cinemas with multiple screens, schedule shows, and play synchronized video + audio for nearby players. Video always renders on item frames without a resource pack; the pack is optional and only required for enhanced audio.
 
 ---
 
@@ -21,12 +21,12 @@ MovieTheatreCore lets you build in-game cinemas with multiple screens, schedule 
 
 ---
 
-## 2) Pterodactyl/Wings requirements (resource pack hosting)
+## 2) Pterodactyl/Wings requirements (resource pack hosting for audio)
 
-MovieTheatreCore serves a **single rolling resource pack** that includes audio for all media. Players download it from an HTTPS URL you provide.
+MovieTheatreCore serves a **single rolling resource pack** that includes audio for all media. Players download it from a **public** HTTP(S) URL you provide (audio only; video works without it).
 
 ### Requirements
-- You **must** provide a public HTTPS URL for the pack.
+- You **must** provide a public HTTP(S) URL for the pack if you want audio.
 - The pack must be reachable at:
   ```
   https://your-pack-domain.example/pack.zip
@@ -36,7 +36,7 @@ MovieTheatreCore serves a **single rolling resource pack** that includes audio f
 1. Open or proxy the internal pack server port (default `8123`).
 2. Put NGINX in front of it and terminate HTTPS.
 3. Install a certificate with certbot.
-4. Set `pack.public-base-url` in the config.
+4. Set a public base URL in the config (see priority below).
 
 **Example NGINX config**
 ```
@@ -70,22 +70,26 @@ sudo certbot --nginx -d pack.yourdomain.example
 
 **Config key (required)**
 ```yaml
+resource_pack:
+  server:
+    public-url: "https://pack.yourdomain.example"
+  url: ""
 pack:
-  public-base-url: "https://pack.yourdomain.example"
+  public-base-url: ""
 ```
 
-> Use the base HTTPS URL (no trailing slash required). The plugin appends `/pack.zip`.
+> Use the base HTTP(S) URL (no trailing slash required). The plugin appends `/pack.zip`.
 
-> The plugin runs behind NAT in Pterodactyl/Wings. **Do not** use `localhost` or private IPs for the public URL.
+> The plugin runs behind NAT in Pterodactyl/Wings. **Do not** use `localhost`, `0.0.0.0`, or private IPs for the public URL.
 
 ---
 
-## 3) DNS setup for the pack subdomain
+## 3) DNS setup for the pack subdomain (audio)
 
 1. Create a DNS record (A or CNAME) for a subdomain, e.g.:
    - `pack.yourdomain.example` → your proxy/server IP
 2. Configure HTTPS on that subdomain.
-3. Set `pack.public-base-url` to the **HTTPS** pack URL base (it will serve `/pack.zip`).
+3. Set a public pack URL base (it will serve `/pack.zip`).
 
 ---
 
@@ -110,7 +114,7 @@ pack:
 Supported media sources:
 - **YouTube links** (via yt-dlp)
 - **Direct MP4 / WEBM URLs**
-- **MediaFire direct download links** (must point directly to the file)
+- **MediaFire direct download links** (must point directly to the file; some links are blocked or require a direct link)
 - **M3U8 livestreams** (direct playlist URLs)
 - **Local files** (host them over HTTPS and use the direct URL; file paths are not supported)
 
@@ -164,9 +168,9 @@ If a video has **no audio stream**, it will play silently (video still works).
 
 ---
 
-## 8) Resource packs (fully automatic)
+## 8) Resource packs (optional, fully automatic for audio)
 
-MovieTheatreCore builds **one rolling resource pack** for **all media**.
+MovieTheatreCore builds **one rolling resource pack** for **all media** (audio only).
 
 It automatically rebuilds when:
 - Media is added
@@ -176,20 +180,45 @@ It automatically rebuilds when:
 Rules:
 - The pack is applied **only** when a player is within range of an active screen **and** a video is playing.
 - If the pack fails to download, video keeps playing and admins are notified (audio is skipped).
-- Keep `resource_pack.server.enabled: true` (default) so the server can host the pack.
+- The pack server **bind address** is not the public URL. Configure the public URL separately.
 
-Pack URL format (required):
+Public URL priority (first non-empty wins):
+1. `resource_pack.server.public-url`
+2. `pack.public-base-url`
+3. `resource_pack.url` (legacy)
+
+Pack URL format (required for audio):
 ```
 https://your-pack-domain.example/pack.zip
 ```
 
-Set the base URL in `pack.public-base-url` and the plugin will append `/pack.zip`.
-Make sure the selected host serves `/pack.zip` over HTTPS.
+Set the base URL in one of the keys above and the plugin will append `/pack.zip`.
+Make sure the selected host serves `/pack.zip` over HTTP(S).
 
 Debug command:
 ```
 /mtc debug pack
 ```
+
+Health check for the embedded server:
+```
+curl http://127.0.0.1:8123/health
+```
+
+---
+
+## 9) YouTube cookies (optional)
+
+If YouTube playback is blocked, export cookies from your browser and save them as:
+
+```
+plugins/MovieTheatreCore/youtube-cookies.txt
+```
+
+MovieTheatreCore will:
+- Detect expired/invalid cookies.
+- Warn admins with a clear fix message.
+- Fall back to non-cookie mode if `youtube.require-cookies` is `false`.
 
 ---
 
@@ -256,16 +285,16 @@ curl -I https://your-pack-domain.example/pack.zip
 **Common problems**
 
 - **“Pack URL not configured.”**
-  - Set `pack.public-base-url` to a public HTTPS pack URL base.
+  - Set `resource_pack.server.public-url`, `pack.public-base-url`, or `resource_pack.url` to a public HTTP(S) pack URL base.
 
 - **“Pack URL returned HTML.”**
-  - You used a share page. Use a direct HTTPS URL to `/pack.zip`.
+  - You used a share page. Use a direct HTTP(S) URL to `/pack.zip`.
 
 - **“Pack failed (DECLINED/FAILED_DOWNLOAD).”**
-  - The player declined or could not download the pack. Fix the HTTPS URL and try again.
+  - The player declined or could not download the pack. Fix the HTTP(S) URL and try again.
 
 - **“Pack URL points to 0.0.0.0 / private IP.”**
-  - `0.0.0.0` is a bind address and will never work for clients. Set `pack.public-base-url` to a public HTTPS domain.
+  - `0.0.0.0` is a bind address and will never work for clients. Set a public HTTP(S) domain in `resource_pack.server.public-url`, `pack.public-base-url`, or `resource_pack.url`.
 
 - **“502 Bad Gateway” from NGINX**
   - Ensure the embedded pack server is running (`resource_pack.server.enabled: true`) and NGINX proxies to `http://127.0.0.1:8123/pack.zip`.

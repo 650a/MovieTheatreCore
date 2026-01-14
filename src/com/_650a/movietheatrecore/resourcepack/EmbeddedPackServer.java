@@ -159,10 +159,27 @@ public class EmbeddedPackServer {
             }
 
             String path = exchange.getRequestURI().getPath();
+            if (path != null && path.equals("/health")) {
+                byte[] response = "ok".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().add("Content-Type", "text/plain");
+                exchange.getResponseHeaders().add("Cache-Control", "no-store");
+                if ("HEAD".equalsIgnoreCase(method)) {
+                    exchange.getResponseHeaders().set("Content-Length", String.valueOf(response.length));
+                    exchange.sendResponseHeaders(200, -1);
+                    return;
+                }
+                exchange.sendResponseHeaders(200, response.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response);
+                }
+                return;
+            }
             if (path == null || path.isBlank() || "/".equals(path)) {
                 byte[] response = "MovieTheatreCore pack server".getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().add("Content-Type", "text/plain");
+                exchange.getResponseHeaders().add("Cache-Control", "no-store");
                 if ("HEAD".equalsIgnoreCase(method)) {
+                    exchange.getResponseHeaders().set("Content-Length", String.valueOf(response.length));
                     exchange.sendResponseHeaders(200, -1);
                     return;
                 }
@@ -181,7 +198,9 @@ public class EmbeddedPackServer {
 
             Path targetPath = target.toPath();
             exchange.getResponseHeaders().add("Content-Type", contentType(targetPath));
+            exchange.getResponseHeaders().add("Cache-Control", "no-store");
             if ("HEAD".equalsIgnoreCase(method)) {
+                exchange.getResponseHeaders().set("Content-Length", String.valueOf(target.length()));
                 exchange.sendResponseHeaders(200, -1);
                 return;
             }

@@ -26,7 +26,7 @@ MovieTheatreCore is distributed only through official marketplace listings. Inst
 - Multi-room theatres with scheduled shows and audience zones.
 - Screen, media, and playback management from a single command surface.
 - Automatic, offline-friendly dependency installer for ffmpeg/ffprobe/yt-dlp/deno.
-- Automatic resource pack generation with a single rolling pack for all media.
+- Automatic resource pack generation with a single rolling pack for all media (audio only).
 - Compatible with Minecraft 1.8.8 (Java 17) through the latest releases.
 
 ## Permissions
@@ -63,12 +63,16 @@ MovieTheatreCore enforces permissions on every command and GUI action:
 5. **Configure the public pack URL (required for audio)**
    - Create a pack subdomain (e.g., `pack.yourdomain.example`) with HTTPS.
    - Terminate HTTPS with NGINX + certbot.
-   - Set it in `configuration.yml`:
+   - Set it in `configuration.yml` (priority order shown):
      ```yaml
+     resource_pack:
+       server:
+         public-url: "https://pack.yourdomain.example"
+       url: ""
      pack:
-       public-base-url: "https://pack.yourdomain.example"
+       public-base-url: ""
      ```
-   - Use the base HTTPS URL (no trailing slash required). The plugin appends `/pack.zip`.
+   - Use the base HTTP(S) URL (no trailing slash required). The plugin appends `/pack.zip`.
    - The pack will be served at `https://pack.yourdomain.example/pack.zip`.
    - See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for the full NGINX + certbot example.
 
@@ -86,7 +90,7 @@ If YouTube playback is blocked, export cookies from your browser and save them a
 plugins/MovieTheatreCore/youtube-cookies.txt
 ```
 
-MovieTheatreCore will warn you if the cookies are expired and continue to run yt-dlp in tiered mode.
+MovieTheatreCore will warn you if the cookies are expired/invalid and continue to run yt-dlp in tiered mode if `youtube.require-cookies` is `false`.
 
 ### Resource packs (fully automatic)
 
@@ -96,14 +100,18 @@ MovieTheatreCore automatically extracts audio for new media and builds a single 
 https://pack.yourdomain.example/pack.zip
 ```
 
-Set the public pack URL in `configuration.yml`:
+Set the public pack URL in `configuration.yml` (priority order):
 
 ```yaml
+resource_pack:
+  server:
+    public-url: "https://pack.yourdomain.example"
+  url: ""
 pack:
-  public-base-url: "https://pack.yourdomain.example"
+  public-base-url: ""
 ```
 
-The built-in pack server can still be used internally, but the **public URL must be HTTPS** and reachable by players.
+The built-in pack server can still be used internally, but the **public URL must be HTTP(S)** and reachable by players (never `localhost`, `0.0.0.0`, or private IPs).
 
 Video rendering is always map/itemframe-based and **does not depend on the resource pack** (audio only).
 
@@ -144,7 +152,7 @@ dependencies:
 
 ### Resource pack not downloading
 
-- Confirm `pack.public-base-url` is set to a **public HTTPS** pack URL.
+- Confirm `resource_pack.server.public-url`, `pack.public-base-url`, or `resource_pack.url` is set to a **public HTTP(S)** pack URL.
 - Run `/mtc debug pack` to see pack size, SHA1, and curl test output.
 - Verify the pack URL returns a ZIP:
   ```

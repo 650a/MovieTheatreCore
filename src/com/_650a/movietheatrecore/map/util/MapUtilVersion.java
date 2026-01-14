@@ -34,6 +34,9 @@ public class MapUtilVersion {
 			System.out.print("MovieTheatreCore is running on the latest supported minecraft version : "
 					+ Bukkit.getServer().getClass().getPackage().getName() + "\n");
 		}
+		if (Bukkit.getPluginManager().getPlugin("ProtocolLib") != null) {
+			return new ProtocolLibMapUtil();
+		}
 		return new ReflectiveMapUtil();
 	}
 }
